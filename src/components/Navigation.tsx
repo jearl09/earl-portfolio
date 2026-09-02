@@ -10,7 +10,6 @@ export const Navigation = ({ currentPage, onNavigate }: NavigationProps) => {
   const [isHovered, setIsHovered] = useState<string | null>(null);
 
   const navItems = [
-    { id: "work" as const, label: "WORK" },
     { id: "play" as const, label: "PLAY" },
     { id: "about" as const, label: "ABOUT" },
   ];

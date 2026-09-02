@@ -1,20 +1,43 @@
 import { ArrowUpRight } from "lucide-react";
 
 const skills = [
-  "Creative Direction",
-  "Brand Strategy",
-  "Product Design",
-  "Design Systems",
-  "Motion Design",
-  "UX Architecture",
-  "Prototyping",
-  "User Research",
+  "Full-Stack Web Development",
+  "Backend & API Architecture",
+  "Data Ingestion & ETL Pipelines",
+  "Modern Frontend & UI",
+  "Database Design & Optimization",
+  "AI/LLM & RAG Workflows",
 ];
 
 const experience = [
-  { role: "Design Director", company: "Studio One", period: "2022 — Present" },
-  { role: "Senior Designer", company: "Agency X", period: "2019 — 2022" },
-  { role: "Product Designer", company: "Tech Startup", period: "2017 — 2019" },
+  {
+    role: "Software Engineering & AI/LLM Intern",
+    company: "Innodata Inc.",
+    period: "2026",
+  },
+  {
+    role: "Full-Stack Builder",
+    company: "DriveSafe, Wave Portal, TCDEX",
+    period: "2024 — Present",
+  },
+];
+
+const connectLinks = [
+  {
+    label: "Email",
+    href: "mailto:johnearlmandawe17@gmail.com?subject=Reaching%20Out%20via%20Portfolio",
+    external: false,
+  },
+  {
+    label: "GitHub",
+    href: "https://github.com/jearl09",
+    external: true,
+  },
+  {
+    label: "LinkedIn",
+    href: "https://www.linkedin.com/in/john-earl-mandawe-539a90260/",
+    external: true,
+  },
 ];
 
 export const AboutPage = () => {
@@ -29,15 +52,10 @@ export const AboutPage = () => {
 
         <div className="grid md:grid-cols-2 gap-16 mb-24">
           <div className="opacity-0 animate-fade-up" style={{ animationDelay: '100ms', animationFillMode: 'forwards' }}>
-            <h2 className="text-display text-2xl md:text-3xl font-semibold mb-6 leading-tight">
-              THE GOAT.
-            </h2>
             <p className="text-muted-foreground leading-relaxed mb-6">
-              I build things people pretend they didn't notice until they can't stop thinking about them. 
-              Specialties include turning vague briefs into pixel-perfect reality and convincing stakeholders that "one more tweak" is a feature, not a bug.
-            </p>
+I’m John Earl Mandawe, a Full-Stack Software Engineer focused on building robust, high-performance web applications and scalable data-driven systems. I work across the stack with Java (Spring Boot), TypeScript, React, Next.js, and Supabase, backed by relational databases like PostgreSQL and MySQL. Whether I'm automating complex data ingestion pipelines, architecting resilient backend services, or tinkering in a Linux environment, I care about clean architecture, speed, and real-world impact.            </p>
             <p className="text-muted-foreground leading-relaxed">
-              Based in Cebu — aw wa ragud.
+              Based in Cebu, Philippines.
             </p>
           </div>
 
@@ -93,15 +111,31 @@ export const AboutPage = () => {
           <h3 className="text-mono text-xs uppercase tracking-widest text-muted-foreground mb-8">
             Connect
           </h3>
+
+          <div className="mb-8 flex flex-wrap gap-4">
+            <a
+              href="/Resume_John Earl.pdf"
+              download="Resume_John Earl.pdf"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-sm font-medium text-foreground transition-all duration-200 hover:border-accent/60 hover:bg-accent/5 hover:text-accent focus:outline-none focus:ring-2 focus:ring-accent/40"
+            >
+              <ArrowUpRight className="h-4 w-4 transition-transform duration-200 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+              Download Resume
+            </a>
+          </div>
+
           <div className="flex flex-wrap gap-6">
-            {["LinkedIn", "Twitter", "Dribbble", "Email"].map((link) => (
+            {connectLinks.map(({ label, href, external }) => (
               <a
-                key={link}
-                href="#"
-                className="group flex items-center gap-2 text-display font-medium hover:text-accent transition-colors duration-300"
+                key={label}
+                href={href}
+                target={external ? "_blank" : undefined}
+                rel={external ? "noopener noreferrer" : undefined}
+                className="group inline-flex items-center gap-2 text-display text-sm md:text-base font-medium text-foreground transition-all duration-200 hover:text-accent focus:outline-none focus:ring-2 focus:ring-accent/40"
               >
-                {link}
-                <ArrowUpRight className="w-4 h-4 opacity-0 -translate-y-1 translate-x-1 group-hover:opacity-100 group-hover:translate-y-0 group-hover:translate-x-0 transition-all duration-300" />
+                {label}
+                <ArrowUpRight className="h-4 w-4 opacity-60 transition-all duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:opacity-100" />
               </a>
             ))}
           </div>
