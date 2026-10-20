@@ -1,52 +1,28 @@
+import { useCallback, useState } from "react";
 import { GalleryCard } from "./GalleryCard";
+import { GalleryModal } from "./GalleryModal";
+import { webProjects, figmaProjects, type Project } from "@/data/projects";
 
-const webProjects = [
-  {
-    id: 1,
-    image: "/wave-portal.png",
-    title: "Wave Portal",
-    category: "Web3 / Blockchain",
-    year: "2026",
-    link: "https://wave-portal.vercel.app/",
-  },
-  {
-    id: 2,
-    image: "/DriveSafe.png",
-    title: "DriveSafe",
-    category: "Academic Archiving & Verification Vault",
-    year: "2026",
-    link: "https://archival-drivesafe.online/",
-  },
-  {
-    id: 3,
-    image: "/TCDEX.jpg",
-    title: "TCDEX",
-    category: "Talent & Cohort Analytics",
-    year: "2026",
-    link: "https://tcdex-app-iota.vercel.app/login",
-  },
-];
-
-const figmaProjects = [
-  {
-    id: 4,
-    image: "/upark.png",
-    title: "U-Park Locator",
-    category: "UI/UX Design",
-    year: "2025",
-    link: "https://www.figma.com/proto/FD1VQMFQCsfzoLv5msmvN4/Parking-Spot-Locator",
-  },
-  {
-    id: 5,
-    image: "/leaf-root.png",
-    title: "Leaf & Root Solutions",
-    category: "Brand Identity",
-    year: "2025",
-    link: "https://www.figma.com/proto/puvhf7yCLE55ooO8PcmT7d/Leaf---Root-Solutions",
-  },
-];
+const caseStudies = webProjects.filter((p) => p.caseStudy);
 
 export const PlayPage = () => {
+  const [openIndex, setOpenIndex] = useState<number | null>(null);
+
+  const openProject = useCallback((project: Project) => {
+    const i = caseStudies.findIndex((p) => p.id === project.id);
+    if (i >= 0) setOpenIndex(i);
+  }, []);
+
+  const close = useCallback(() => setOpenIndex(null), []);
+  const prev = useCallback(
+    () => setOpenIndex((i) => (i === null ? null : (i - 1 + caseStudies.length) % caseStudies.length)),
+    []
+  );
+  const next = useCallback(
+    () => setOpenIndex((i) => (i === null ? null : (i + 1) % caseStudies.length)),
+    []
+  );
+
   return (
     <div className="bg-[#0C0C0C] min-h-screen pt-24 pb-16 px-6 md:px-12 text-foreground">
       <header className="mb-16 max-w-4xl">
@@ -63,23 +39,8 @@ export const PlayPage = () => {
           Web Projects
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-px">
-          {webProjects.map((item, index) => (
-            <a
-              key={item.id}
-              href={item.link}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="block"
-              aria-label={`${item.title} - ${item.category}`}
-            >
-              <GalleryCard
-                image={item.image}
-                title={item.title}
-                year={item.year}
-                category={item.category}
-                index={index}
-              />
-            </a>
+          {webProjects.map((project, index) => (
+            <GalleryCard key={project.id} project={project} index={index} onOpen={openProject} />
           ))}
         </div>
       </section>
@@ -89,26 +50,21 @@ export const PlayPage = () => {
           Figma Projects
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-px">
-          {figmaProjects.map((item, index) => (
-            <a
-              key={item.id}
-              href={item.link}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="block"
-              aria-label={`${item.title} - ${item.category}`}
-            >
-              <GalleryCard
-                image={item.image}
-                title={item.title}
-                year={item.year}
-                category={item.category}
-                index={index + webProjects.length}
-              />
-            </a>
+          {figmaProjects.map((project, index) => (
+            <GalleryCard key={project.id} project={project} index={index + webProjects.length} />
           ))}
         </div>
       </section>
+
+      <GalleryModal
+        isOpen={openIndex !== null}
+        item={openIndex === null ? null : caseStudies[openIndex]}
+        currentIndex={openIndex ?? 0}
+        totalItems={caseStudies.length}
+        onClose={close}
+        onPrev={prev}
+        onNext={next}
+      />
     </div>
   );
 };
