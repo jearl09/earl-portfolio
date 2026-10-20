@@ -73,7 +73,8 @@ export const projects: Project[] = [
     year: "2026",
     image: "/liveluxe-portal.webp",
     meta: ["Next.js", "Supabase", "Stripe"],
-    status: "PILOT",
+    status: "LIVE",
+    link: { href: "https://partners.liveluxe.au/", label: "Visit site" },
     caseStudy: {
       overview: [
         "Built for Live Luxe, a short-term rental manager. Corporate partners such as insurers, relocation firms and project crews get their own login to browse properties and send booking requests at partner rates instead of booking through public listings.",
