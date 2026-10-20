@@ -11,14 +11,24 @@ const skills = [
 
 const experience = [
   {
+    role: "Full-Stack Developer",
+    company: "Live Luxe — Partner Booking Portal (Next.js, Supabase, Stripe, Hostaway)",
+    period: "2026 — Present",
+  },
+  {
+    role: "Software Engineer",
+    company: "Wholesale Acquisition Bot — automotive client (Python, FastAPI, Claude API)",
+    period: "2026",
+  },
+  {
     role: "Software Engineering & AI/LLM Intern",
     company: "Innodata Inc.",
     period: "2026",
   },
   {
     role: "Full-Stack Builder",
-    company: "DriveSafe, Wave Portal, TCDEX",
-    period: "2024 — Present",
+    company: "DriveSafe, Wave Portal, TCDEX TalentIQ",
+    period: "2024 — 2026",
   },
 ];
 
@@ -94,9 +104,9 @@ I’m John Earl Mandawe, a Full-Stack Software Engineer focused on building robu
             <ul className="space-y-6">
               {experience.map((item) => (
                 <li key={item.company} className="border-b border-border pb-6">
-                  <div className="flex items-start justify-between mb-2">
+                  <div className="flex items-start justify-between gap-4 mb-2">
                     <span className="text-display text-lg font-medium">{item.role}</span>
-                    <span className="text-mono text-xs text-muted-foreground">
+                    <span className="text-mono text-xs text-muted-foreground shrink-0 whitespace-nowrap">
                       {item.period}
                     </span>
                   </div>
