@@ -1,4 +1,6 @@
 export type ProjectStatus = "LIVE" | "ARCHIVED" | "PRIVATE" | "PILOT" | "PROTOTYPE";
+/** Which section of the gallery the card sits in. */
+export type ProjectGroup = "client" | "experiment" | "figma";
 
 export interface CaseStudy {
   overview: string[];
@@ -10,6 +12,7 @@ export interface CaseStudy {
 export interface Project {
   id: string;
   kind: "web" | "figma";
+  group: ProjectGroup;
   title: string;
   /** Short label shown on hover, like the Figma cards ("UI/UX DESIGN"). */
   category: string;
@@ -28,6 +31,7 @@ export interface Project {
 export const projects: Project[] = [
   {
     id: "wholesale-acquisition-bot",
+    group: "client",
     kind: "web",
     title: "Wholesale Acquisition Bot",
     category: "AI / Conversation Systems",
@@ -64,7 +68,87 @@ export const projects: Project[] = [
     },
   },
   {
+    id: "liveluxe-owner-disbursements",
+    group: "client",
+    kind: "web",
+    title: "Owner Disbursements",
+    category: "Finance Automation",
+    tagline:
+      "Monthly owner payouts for a short-stay property manager: every reservation classified, one statement per owner, one bank file, two approvals before anything is paid.",
+    year: "2026",
+    image: "/liveluxe-disbursements.webp",
+    meta: ["Python", "Flask", "Hostaway API"],
+    status: "PRIVATE",
+    caseStudy: {
+      overview: [
+        "Built for Live Luxe. Each month the operator uploads the owner-expenses file and the Airbnb, Booking.com and bank reports; the system pulls the reservations from Hostaway, works out what each owner is owed and produces a PDF statement per property plus the NAB ABA payment file.",
+        "Runs on an always-on Mac mini behind Tailscale, with a password-gated front door on Vercel so the finance team can open it from anywhere without the machine being exposed to the internet.",
+      ],
+      howItWorks: [
+        "Every reservation is classified as counted, rolling to next month or excluded, each with a recorded reason. Overrides are allowed but logged. A missing expenses file blocks the run; expenses are never assumed to be zero.",
+        "Issues are graded. Blockers (unknown channel, unmatched expense, bad bank details) stop the ABA from being built; warnings (unmapped listing with revenue, payout-month mismatch against the platform report) have to be checked before approval.",
+        "The ABA file is re-parsed after it is written: 120-character records, totals, record count and self-balance. The page shows that the sum of statements equals the sum of ABA credits.",
+        "Emails go out from the owners@ mailbox only after a dry-run validation and a typed confirmation. Sent statements are never re-sent; a statement that changes after sending is flagged. Finalising writes counted reservations to a ledger so nothing can be paid twice.",
+        "Requests travel browser → Vercel (HTTP Basic auth) → Tailscale Funnel → Flask on the mini, with a shared header key so the mini refuses anything that did not come through the gate.",
+      ],
+      stack: [
+        "Python 3.12",
+        "Flask + Jinja",
+        "Hostaway API",
+        "Google Workspace CLI (Gmail, Drive)",
+        "WeasyPrint PDF statements",
+        "NAB ABA file format",
+        "launchd on macOS",
+        "Tailscale Funnel",
+        "Next.js 16 gateway on Vercel",
+      ],
+      role: [
+        "Deployment and operations engineer. The calculation engine was supplied by the client; I migrated it to the always-on server, set up the two Gmail identities and their token handling, wrote the scheduling, built the Vercel front door and documented the runbook.",
+      ],
+    },
+  },
+  {
+    id: "liveluxe-weekly-variable-costs",
+    group: "client",
+    kind: "web",
+    title: "Weekly Variable Costs",
+    category: "AI / Document Pipelines",
+    tagline:
+      "A scheduled pipeline that reads a week of supplier invoices from two mailboxes, has Claude extract every line, and publishes a cost sheet split across four bank accounts.",
+    year: "2026",
+    image: "/liveluxe-weekly-costs.webp",
+    meta: ["Python", "Claude Code", "Google Workspace"],
+    status: "PRIVATE",
+    caseStudy: {
+      overview: [
+        "Built for Live Luxe and its cleaning company. Each Tuesday-to-Monday week, supplier, utility and cleaner invoices arrive in two Google Workspace mailboxes. The pipeline collects them, extracts the amounts and the property each one belongs to, and rebuilds a Google Sheet plus a Drive folder per bank account: Head Lease, Trust, Hybrid and Company.",
+        "A Run-now web page shows where each week is up to (collected, extracted, published), lets staff collect a week by hand and publish an extracted week. It never sends email; drafting and sending client invoices stay on separate, individually approved scheduled jobs.",
+      ],
+      howItWorks: [
+        "Four launchd jobs cover the week: Monday afternoon collects, extracts and drafts invoices; Monday evening sends the approved drafts; Tuesday morning re-collects for late arrivals and sends the cleaning company's invoice if Monday's did not go; Tuesday evening does the final republish and reconciliation.",
+        "Extraction is done by Claude Code running headless under the scheduler, reading each email and attachment against a written spec and business-rule memory files, and writing one JSON record per invoice line. A guard file per week and mode stops a job running twice.",
+        "Publishing rebuilds the sheet in place and skips files already uploaded, so a re-run is safe. Each run ends with a written summary: totals per account, what changed since the last run, missing invoices and the decisions the owner has to make.",
+        "The pre-flight checks both mailbox logins before anything runs; an expired token stops the job with a one-line reason rather than a half-finished week.",
+        "Same front-door pattern as the disbursements tool: Vercel gateway with Basic auth, Tailscale Funnel, shared header key, Flask bound to localhost.",
+      ],
+      stack: [
+        "Python 3.12",
+        "Flask",
+        "Claude Code (headless, scheduled)",
+        "Google Workspace CLI (Gmail, Drive, Sheets)",
+        "openpyxl",
+        "launchd on macOS",
+        "Tailscale Funnel",
+        "Next.js 16 gateway on Vercel",
+      ],
+      role: [
+        "Deployment and operations engineer, and author of the web layer. Migrated the client's pipeline to the always-on server, connected the second mailbox, adapted the four scheduled jobs and their prompts to the machine, built the Run-now page and Vercel gateway, and ran the first end-to-end week.",
+      ],
+    },
+  },
+  {
     id: "liveluxe-partner-portal",
+    group: "client",
     kind: "web",
     title: "Live Luxe Partner Portal",
     category: "Booking Platform",
@@ -103,6 +187,7 @@ export const projects: Project[] = [
   },
   {
     id: "wave-portal",
+    group: "experiment",
     kind: "web",
     title: "Wave Portal",
     category: "Web3 / Blockchain",
@@ -137,6 +222,7 @@ export const projects: Project[] = [
   },
   {
     id: "drivesafe",
+    group: "experiment",
     kind: "web",
     title: "DriveSafe",
     category: "Academic Archiving",
@@ -172,6 +258,7 @@ export const projects: Project[] = [
   },
   {
     id: "tcdex-talentiq",
+    group: "experiment",
     kind: "web",
     title: "TCDEX TalentIQ",
     category: "Talent & Cohort Analytics",
@@ -196,6 +283,7 @@ export const projects: Project[] = [
   },
   {
     id: "u-park-locator",
+    group: "figma",
     kind: "figma",
     title: "U-Park Locator",
     category: "UI/UX Design",
@@ -211,6 +299,7 @@ export const projects: Project[] = [
   },
   {
     id: "leaf-root-solutions",
+    group: "figma",
     kind: "figma",
     title: "Leaf & Root Solutions",
     category: "Brand Identity",
@@ -230,4 +319,6 @@ export const metaRow = (project: Project) =>
   [`#${project.year}`, ...project.meta, project.status].join(" · ");
 
 export const webProjects = projects.filter((p) => p.kind === "web");
-export const figmaProjects = projects.filter((p) => p.kind === "figma");
+export const clientProjects = projects.filter((p) => p.group === "client");
+export const experimentProjects = projects.filter((p) => p.group === "experiment");
+export const figmaProjects = projects.filter((p) => p.group === "figma");
