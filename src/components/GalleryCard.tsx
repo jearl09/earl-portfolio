@@ -15,7 +15,7 @@ export const GalleryCard = ({ project, index, onOpen }: GalleryCardProps) => {
   const open = () => onOpen?.(project);
 
   const tile = (
-    <div className="aspect-square overflow-hidden bg-card relative">
+    <div className={cn("overflow-hidden bg-card relative", project.kind === "figma" ? "aspect-square" : "aspect-[16/10]")}>
       <img
         src={image}
         alt={title}

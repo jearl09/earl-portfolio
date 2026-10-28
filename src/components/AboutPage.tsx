@@ -16,6 +16,11 @@ const experience = [
     period: "2026 — Present",
   },
   {
+    role: "Deployment & Operations Engineer",
+    company: "Live Luxe — Back-office automation: owner disbursements, weekly variable costs (Python, Claude Code, Tailscale, Vercel)",
+    period: "2026 — Present",
+  },
+  {
     role: "Software Engineer",
     company: "Wholesale Acquisition Bot — automotive client (Python, FastAPI, Claude API)",
     period: "2026",

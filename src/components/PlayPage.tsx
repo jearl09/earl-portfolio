@@ -1,7 +1,7 @@
 import { useCallback, useState } from "react";
 import { GalleryCard } from "./GalleryCard";
 import { GalleryModal } from "./GalleryModal";
-import { webProjects, figmaProjects, type Project } from "@/data/projects";
+import { webProjects, clientProjects, experimentProjects, figmaProjects, type Project } from "@/data/projects";
 
 const caseStudies = webProjects.filter((p) => p.caseStudy);
 
@@ -36,11 +36,27 @@ export const PlayPage = () => {
 
       <section className="mb-20">
         <h2 className="text-mono text-xs uppercase tracking-widest text-muted-foreground mb-8">
-          Web Projects
+          Client Work
         </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-px">
-          {webProjects.map((project, index) => (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-px">
+          {clientProjects.map((project, index) => (
             <GalleryCard key={project.id} project={project} index={index} onOpen={openProject} />
+          ))}
+        </div>
+      </section>
+
+      <section className="mb-20">
+        <h2 className="text-mono text-xs uppercase tracking-widest text-muted-foreground mb-8">
+          Experiments &amp; Open Source
+        </h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-px">
+          {experimentProjects.map((project, index) => (
+            <GalleryCard
+              key={project.id}
+              project={project}
+              index={index + clientProjects.length}
+              onOpen={openProject}
+            />
           ))}
         </div>
       </section>
@@ -49,7 +65,7 @@ export const PlayPage = () => {
         <h2 className="text-mono text-xs uppercase tracking-widest text-muted-foreground mb-8">
           Figma Projects
         </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-px">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-px">
           {figmaProjects.map((project, index) => (
             <GalleryCard key={project.id} project={project} index={index + webProjects.length} />
           ))}
