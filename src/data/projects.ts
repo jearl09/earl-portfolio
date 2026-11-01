@@ -186,6 +186,42 @@ export const projects: Project[] = [
     },
   },
   {
+    id: "lift-log",
+    group: "experiment",
+    kind: "web",
+    title: "Lift Log",
+    category: "Offline-first PWA",
+    tagline:
+      "A personal workout tracker that installs to the iPhone home screen, works offline and keeps every set in the browser. No backend, no accounts, no build step.",
+    year: "2026",
+    image: "/lift-log.webp",
+    meta: ["Vanilla JS", "PWA", "localStorage"],
+    status: "LIVE",
+    link: { href: "https://jearl09.github.io/lift-log/", label: "Open app" },
+    caseStudy: {
+      overview: [
+        "Built to replace a notes-app workout log. Pick a split (Push/Pull/Legs, Upper/Lower, Full Body or your own), the Today tab suggests the next day, and each set is logged as reps and weight with last session's numbers as ghost text.",
+        "Everything lives in localStorage, so the app loads instantly and works with no signal in the gym. A JSON export from Settings is the backup.",
+      ],
+      howItWorks: [
+        "Plain ES modules served as static files: a storage layer with one JSON blob per key, a ~65-movement exercise library with primary and secondary muscles, and one view module per screen. A cache-first service worker precaches the shell and fonts; bumping a version constant rolls out updates with a reload toast.",
+        "The rest timer auto-starts when a set is ticked off. It is driven by an end timestamp rather than a running interval, so it stays accurate through screen lock, and ends with a generated beep, a screen flash and an optional local notification.",
+        "A stylised front/back SVG figure highlights the muscles each exercise and split day hits, and the History tab reuses it as a 7-day heatmap next to a 12-week contribution calendar, best sets and an estimated 1RM chart per exercise.",
+        "Focused workout mode shows one exercise per screen with swipe navigation, steppers, swipe-to-delete, long-press to duplicate, a plate calculator, a warm-up set generator and PR detection.",
+        "The Enamel design system: cream and racing green with one signal red, 2px outlines, pills and tiles, self-hosted Bricolage Grotesque, all tokens in :root with a dark-mode swap and reduced-motion support.",
+      ],
+      stack: [
+        "HTML / CSS / vanilla JS (ES modules)",
+        "localStorage persistence",
+        "Service worker + web manifest",
+        "Inline SVG muscle map",
+        "Web Audio + Notifications API",
+        "GitHub Pages",
+      ],
+      role: ["Solo project. Designed the system, wrote every module and shipped it as an installable PWA."],
+    },
+  },
+  {
     id: "wave-portal",
     group: "experiment",
     kind: "web",
