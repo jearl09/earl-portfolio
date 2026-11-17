@@ -33,6 +33,9 @@ export const ASCII_IMAGE_CONFIG = {
   intro: true,
   // Scramble characters near the cursor. false makes the render fully static.
   hover: true,
+  // Twinkle: fraction of drawn cells that sparkle each tick (0 = static image).
+  // Keeps a slow animation loop running while the canvas is on screen.
+  twinkle: 0,
   // Cap on devicePixelRatio so retina stays sharp without 3x fill cost.
   maxDpr: 2,
   // Canvas font. null reads the site's --font-mono token (Space Mono).
@@ -129,6 +132,9 @@ export function createAsciiImage(canvas: HTMLCanvasElement, src: string, options
   let scrambleFrom = new Float64Array(0);
   let scrambleTo = new Float64Array(0);
   let raf = 0;
+  let lastDraw = 0;
+  let lastTwinkle = 0;
+  let onScreen = true;
   let introPlayed = false;
   let introPending = false;
   let resizeTimer = 0;
@@ -240,8 +246,9 @@ export function createAsciiImage(canvas: HTMLCanvasElement, src: string, options
         animating = true;
         // Scrambling: random glyph of similar density, slightly dimmed.
         const j = hash2(i, tick);
-        const idx = clamp(Math.round(cellLevels[i] * (ramp.length - 1) + (j - 0.5) * 24), 1, ramp.length - 1);
-        const key = "s" + colors[i];
+        const bias = cfg.twinkle > 0 && introPlayed ? 10 : 0;
+        const idx = clamp(Math.round(cellLevels[i] * (ramp.length - 1) + (j - 0.5) * 24 + bias), 1, ramp.length - 1);
+        const key = (bias ? "t" : "s") + colors[i];
         let g = groups.get(key);
         if (!g) groups.set(key, (g = []));
         g.push(i, idx);
@@ -252,9 +259,9 @@ export function createAsciiImage(canvas: HTMLCanvasElement, src: string, options
       g.push(i, -1);
     }
     for (const [key, list] of groups) {
-      const scrambled = key[0] === "s";
+      const scrambled = key[0] === "s" || key[0] === "t";
       c.fillStyle = scrambled ? key.slice(1) : key;
-      c.globalAlpha = scrambled ? 0.7 : 1;
+      c.globalAlpha = key[0] === "s" ? 0.7 : 1;
       for (let k = 0; k < list.length; k += 2) {
         const i = list[k];
         const idx = list[k + 1];
@@ -267,10 +274,39 @@ export function createAsciiImage(canvas: HTMLCanvasElement, src: string, options
     return animating;
   }
 
+  function twinkling() {
+    return cfg.twinkle > 0 && introPlayed && !reducedMotion.matches && onScreen && !document.hidden;
+  }
+
+  /** Light a random handful of drawn cells so they flare and settle. */
+  function sprinkle(now: number) {
+    const n = cols * rows;
+    const want = Math.max(1, Math.round(cfg.twinkle * n));
+    for (let k = 0, tries = 0; k < want && tries < want * 4; tries++) {
+      const i = (Math.random() * n) | 0;
+      if (!chars[i] || now < scrambleTo[i]) continue;
+      scrambleFrom[i] = now;
+      scrambleTo[i] = now + 200 + Math.random() * 600;
+      k++;
+    }
+  }
+
   function loop(now: number) {
     raf = 0;
     if (disposed) return;
-    if (draw(now)) raf = requestAnimationFrame(loop);
+    const tw = twinkling();
+    if (tw && now - lastTwinkle > 90) {
+      lastTwinkle = now;
+      sprinkle(now);
+    }
+    // twinkle redraws at ~15 fps; intro and hover run at full rate
+    const needDraw = !tw || now - lastDraw >= 66;
+    let animating = true;
+    if (needDraw) {
+      lastDraw = now;
+      animating = draw(now);
+    }
+    if (animating || tw) raf = requestAnimationFrame(loop);
   }
 
   function kick() {
@@ -297,6 +333,7 @@ export function createAsciiImage(canvas: HTMLCanvasElement, src: string, options
       if (reducedMotion.matches || !cfg.intro) {
         introPlayed = true;
         draw(performance.now());
+        kick();
       } else if (introPlayed) {
         draw(performance.now());
       } else if (introPending) {
@@ -356,6 +393,19 @@ export function createAsciiImage(canvas: HTMLCanvasElement, src: string, options
   };
 
   const ro = new ResizeObserver(onResize);
+  const vis = new IntersectionObserver(
+    (entries) => {
+      onScreen = entries.some((e) => e.isIntersecting);
+      if (onScreen) kick();
+    },
+    { threshold: 0 }
+  );
+  if (cfg.twinkle > 0) vis.observe(canvas);
+  const onVisible = () => {
+    if (!document.hidden) kick();
+  };
+  if (cfg.twinkle > 0) document.addEventListener("visibilitychange", onVisible);
+
   const io = new IntersectionObserver(
     (entries) => {
       if (!entries.some((e) => e.isIntersecting)) return;
@@ -377,6 +427,8 @@ export function createAsciiImage(canvas: HTMLCanvasElement, src: string, options
     window.clearTimeout(resizeTimer);
     ro.disconnect();
     io.disconnect();
+    vis.disconnect();
+    document.removeEventListener("visibilitychange", onVisible);
     canvas.removeEventListener("pointermove", onMove);
   }
 

@@ -49,7 +49,7 @@ export const PlayPage = () => {
           className="absolute inset-0 opacity-50 md:opacity-60 [mask-image:radial-gradient(ellipse_70%_40%_at_50%_42%,transparent_14%,black_78%)] md:[mask-image:radial-gradient(ellipse_52%_48%_at_50%_50%,transparent_8%,black_72%)]"
           aria-hidden="true"
         >
-          <AsciiImage src="/deep-field.jpg" alt="" intro={false} hover={false} zoom={1.7} cellWidth={7} cellWidthMobile={8} brightnessBoost={1.35} saturationBoost={1.6} darkThreshold={0.06} edgeThreshold={0.55} />
+          <AsciiImage src="/deep-field.jpg" alt="" intro={false} hover={false} twinkle={0.004} zoom={1.7} cellWidth={7} cellWidthMobile={8} brightnessBoost={1.35} saturationBoost={1.6} darkThreshold={0.06} edgeThreshold={0.55} />
         </div>
         <div className="absolute inset-0">
           <BlackHole />
@@ -145,11 +145,11 @@ export const PlayPage = () => {
           </div>
         </div>
 
-        <div className="max-w-6xl mt-24">
-          <div className="aspect-[4/5] md:aspect-[2/1] w-full overflow-hidden">
+        <div className="mt-24">
+          <div className="-mx-6 md:-mx-12 aspect-[4/5] md:aspect-auto md:h-[72vh] overflow-hidden">
             <Meadow />
           </div>
-          <div className="grid md:grid-cols-2 gap-12 mt-10">
+          <div className="grid md:grid-cols-2 gap-12 mt-10 max-w-6xl">
             <div>
               <h3 className="text-display text-2xl md:text-3xl font-bold tracking-tight mb-4">
                 <span className="text-accent text-mono text-xs align-top mr-3">03</span>
@@ -180,11 +180,11 @@ export const PlayPage = () => {
           </div>
         </div>
 
-        <div className="max-w-6xl mt-24">
-          <div className="aspect-[4/3] md:aspect-[12/5] w-full overflow-hidden">
+        <div className="mt-24">
+          <div className="-mx-6 md:-mx-12 aspect-[4/3] md:aspect-auto md:h-[62vh] overflow-hidden">
             <Wings />
           </div>
-          <div className="grid md:grid-cols-2 gap-12 mt-10">
+          <div className="grid md:grid-cols-2 gap-12 mt-10 max-w-6xl">
             <div>
               <h3 className="text-display text-2xl md:text-3xl font-bold tracking-tight mb-4">
                 <span className="text-accent text-mono text-xs align-top mr-3">04</span>

@@ -37,7 +37,7 @@ export const BLACK_HOLE_CONFIG = {
   // Per-glyph shimmer: how far a character may jump along the ramp. 0 = still.
   flicker: 0.6,
   // Background stars per cell. 0.012 is about one star per 80 cells.
-  starDensity: 0.012,
+  starDensity: 0.022,
   // Mouse parallax amount. 0 disables. Touch devices drift automatically.
   parallax: 1,
   // Cap on devicePixelRatio. 2 keeps retina crisp without 3x fill cost.
@@ -77,10 +77,10 @@ export const PALETTES: Record<PaletteName, [number, number, number, number][]> =
 
 const TWO_PI = Math.PI * 2;
 const BUCKETS = 18; // colour groups; fillStyle is set once per bucket per frame
-const STAR_BUCKETS = 3;
+const STAR_BUCKETS = 4;
 const MAX_INTENSITY = 1.35; // raw intensity that maps to the top of the palette
-const STAR_GREYS = ["#3a3a3a", "#585858", "#7a7a7a"];
-const STAR_CHARS = ".,'*";
+const STAR_GREYS = ["#3c3c3c", "#6c6c6c", "#a4a4a4", "#f2f2f2"];
+const STAR_CHARS = ".,+*";
 
 /* ---------- small maths helpers (exported for tests) ---------- */
 
@@ -340,8 +340,8 @@ export function createBlackHole(canvas: HTMLCanvasElement, options: BlackHoleOpt
         starAt[i] = stars.length;
         stars.push({
           cell: i,
-          base: 0.35 + 0.65 * b,
-          speed: 0.6 + 1.8 * hash2(i, 29),
+          base: 0.3 + 0.7 * b,
+          speed: 0.8 + 3 * hash2(i, 29),
           phase: TWO_PI * hash2(i, 43),
           ch: STAR_CHARS[Math.min(STAR_CHARS.length - 1, Math.floor(b * b * STAR_CHARS.length))],
         });
@@ -399,7 +399,7 @@ export function createBlackHole(canvas: HTMLCanvasElement, options: BlackHoleOpt
           const s = starAt[i];
           if (s >= 0) {
             const st = stars[s];
-            const tw = st.base * (0.55 + 0.45 * Math.sin(t * st.speed + st.phase));
+            const tw = st.base * (0.3 + 0.7 * Math.pow(0.5 + 0.5 * Math.sin(t * st.speed + st.phase), 1.6));
             bucketOf[i] = BUCKETS + Math.min(STAR_BUCKETS - 1, Math.floor(tw * STAR_BUCKETS));
             charOf[i] = 255; // star glyph marker
           } else {
