@@ -27,6 +27,12 @@ export const ASCII_IMAGE_CONFIG = {
   hoverRadius: 60,
   // How long a hovered cell scrambles before settling, in ms.
   hoverSettle: 320,
+  // Zoom into the centre of the image: 1 shows the whole cover crop, 2 shows the middle half.
+  zoom: 1,
+  // Play the decode intro when the image scrolls into view. false draws it at once.
+  intro: true,
+  // Scramble characters near the cursor. false makes the render fully static.
+  hover: true,
   // Cap on devicePixelRatio so retina stays sharp without 3x fill cost.
   maxDpr: 2,
   // Canvas font. null reads the site's --font-mono token (Space Mono).
@@ -167,6 +173,9 @@ export function createAsciiImage(canvas: HTMLCanvasElement, src: string, options
     let sh = image.naturalHeight;
     if (imgAspect > boxAspect) sw = sh * boxAspect;
     else sh = sw / boxAspect;
+    const z = Math.max(1, cfg.zoom);
+    sw /= z;
+    sh /= z;
     const sx = (image.naturalWidth - sw) / 2;
     const sy = (image.naturalHeight - sh) / 2;
     sctx.imageSmoothingEnabled = true;
@@ -285,7 +294,7 @@ export function createAsciiImage(canvas: HTMLCanvasElement, src: string, options
     try {
       layout();
       analyse();
-      if (reducedMotion.matches) {
+      if (reducedMotion.matches || !cfg.intro) {
         introPlayed = true;
         draw(performance.now());
       } else if (introPlayed) {
@@ -307,7 +316,7 @@ export function createAsciiImage(canvas: HTMLCanvasElement, src: string, options
   }
 
   const onMove = (e: PointerEvent) => {
-    if (noHover.matches || reducedMotion.matches || !introPlayed) return;
+    if (!cfg.hover || noHover.matches || reducedMotion.matches || !introPlayed) return;
     const rect = canvas.getBoundingClientRect();
     const mx = e.clientX - rect.left;
     const my = e.clientY - rect.top;

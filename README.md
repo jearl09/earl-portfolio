@@ -27,7 +27,10 @@ lensed far side) sampled per character cell, with a blurred additive bloom.
   parallax, DPR cap, palette `fire` | `ice`, font).
 - `src/components/BlackHole.tsx` — React wrapper; renders a transparent,
   `aria-hidden` canvas that fills its parent. Props override the config per mount.
-- Used in `src/components/PlayPage.tsx` as the hero background. The project gallery lives in
+- Used in `src/components/PlayPage.tsx` as the hero background, over a dim colour-ASCII render of
+  the Hubble Ultra Deep Field 2014 (`public/deep-field.jpg`, credit NASA/ESA, from the NASA image
+  library) masked out around the centre. The field is drawn by `AsciiImage` with `intro` and
+  `hover` off. The project gallery lives in
   `src/components/WorkPage.tsx` (the Work tab, which is the landing page).
 
 Behaviour: pauses when offscreen or the tab is hidden, resizes with its parent,

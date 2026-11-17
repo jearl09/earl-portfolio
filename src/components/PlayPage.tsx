@@ -1,4 +1,5 @@
 import { ArrowUpRight } from "lucide-react";
+import { AsciiImage } from "./AsciiImage";
 import { BlackHole } from "./BlackHole";
 import { Hourglass } from "./Hourglass";
 
@@ -24,6 +25,14 @@ export const PlayPage = () => {
     <div className="bg-[#0C0C0C] text-foreground">
       {/* Hero: ASCII black hole as the full-viewport backdrop, heading layered on top */}
       <header className="relative h-[100svh] min-h-[560px] overflow-hidden">
+        {/* Deep field behind the hole: Hubble Ultra Deep Field 2014 (NASA/ESA) as dim colour ASCII,
+            faded out around the centre so the shadow and photon ring stay clean */}
+        <div
+          className="absolute inset-0 opacity-50 md:opacity-60 [mask-image:radial-gradient(ellipse_70%_40%_at_50%_42%,transparent_14%,black_78%)] md:[mask-image:radial-gradient(ellipse_52%_48%_at_50%_50%,transparent_8%,black_72%)]"
+          aria-hidden="true"
+        >
+          <AsciiImage src="/deep-field.jpg" alt="" intro={false} hover={false} zoom={1.7} cellWidth={7} cellWidthMobile={8} brightnessBoost={1.35} saturationBoost={1.6} darkThreshold={0.06} edgeThreshold={0.55} />
+        </div>
         <div className="absolute inset-0">
           <BlackHole />
         </div>
@@ -45,7 +54,7 @@ export const PlayPage = () => {
             <span>
               <span className="text-accent">01</span> &nbsp;Gargantua &middot; ASCII &middot; canvas
             </span>
-            <span className="hidden md:inline">Made with code</span>
+            <span className="hidden md:inline">Made with code &middot; field: NASA/ESA Hubble UDF 2014</span>
           </div>
         </div>
       </header>
