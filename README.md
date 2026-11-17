@@ -34,3 +34,16 @@ Behaviour: pauses when offscreen or the tab is hidden, resizes with its parent,
 renders a single still frame under `prefers-reduced-motion`, mouse parallax on
 pointer devices and a slow automatic drift on touch devices, larger glyphs under
 768px.
+
+## Background scene (Work and About)
+
+Koi, jellyfish or dragonflies drift on a cell grid behind the Work and About tabs. The
+single ↻ button in the nav cycles Dragonflies → Koi → Jellyfish; the choice is remembered
+in localStorage. The Play tab has no scene.
+
+- `src/lib/asciiAnimals.ts` — simulation and renderer, adapted from
+  [ASCII Animals New Tab](https://github.com/Pawan-webdeveloper/Ascii-Animals-extension)
+  by Pawan-webdeveloper (MIT), trimmed to three animals and a transparent canvas.
+  Tunables in `ASCII_ANIMALS_CONFIG` (cell size, density, speed, size, depth, sway, trails).
+- `src/components/AsciiAnimals.tsx` — fixed full-viewport canvas behind the page.
+- Wiring (which tabs show it, the cycle button, persistence) lives in `src/pages/Index.tsx`.

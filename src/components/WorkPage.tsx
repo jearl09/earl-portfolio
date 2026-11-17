@@ -24,7 +24,7 @@ export const WorkPage = () => {
   );
 
   return (
-    <div className="bg-[#0C0C0C] min-h-screen pt-24 pb-16 px-6 md:px-12 text-foreground">
+    <div className="min-h-screen pt-24 pb-16 px-6 md:px-12 text-foreground">
       <header className="mb-16 max-w-4xl">
         <h1 className="text-display text-4xl md:text-6xl lg:text-7xl font-bold mb-6 tracking-tight">
           WORK

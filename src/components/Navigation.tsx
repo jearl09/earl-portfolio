@@ -4,9 +4,11 @@ import { cn } from "@/lib/utils";
 interface NavigationProps {
   currentPage: "work" | "play" | "about";
   onNavigate: (page: "work" | "play" | "about") => void;
+  /** Background scene switcher: a single button that cycles. Hidden when omitted. */
+  scene?: { label: string; swatch: string; onCycle: () => void };
 }
 
-export const Navigation = ({ currentPage, onNavigate }: NavigationProps) => {
+export const Navigation = ({ currentPage, onNavigate, scene }: NavigationProps) => {
   const [isHovered, setIsHovered] = useState<string | null>(null);
 
   const navItems = [
@@ -48,8 +50,23 @@ export const Navigation = ({ currentPage, onNavigate }: NavigationProps) => {
         ))}
       </div>
 
-      <div className="status-available text-muted-foreground">
-        <span className="hidden md:inline">LIMITED AVAILABILITY</span>
+      <div className="flex items-center gap-5 md:gap-8">
+        {scene && (
+          <button
+            type="button"
+            onClick={scene.onCycle}
+            aria-label={`Change background scene, now ${scene.label}`}
+            title="Change background scene"
+            className="group inline-flex items-center gap-2 text-xs font-mono uppercase tracking-widest text-muted-foreground hover:text-foreground transition-colors duration-300"
+          >
+            <span className="h-2 w-2 rounded-full transition-colors duration-500" style={{ background: scene.swatch }} />
+            <span className="hidden sm:inline">{scene.label}</span>
+            <span aria-hidden="true" className="transition-transform duration-500 group-hover:rotate-180">↻</span>
+          </button>
+        )}
+        <div className="status-available text-muted-foreground">
+          <span className="hidden md:inline">LIMITED AVAILABILITY</span>
+        </div>
       </div>
     </nav>
   );
