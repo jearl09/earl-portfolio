@@ -2,11 +2,11 @@ import { useState } from "react";
 import { Marquee } from "@/components/Marquee";
 import { Navigation } from "@/components/Navigation";
 import { PlayPage } from "@/components/PlayPage";
-// import { WorkPage } from "@/components/WorkPage";
+import { WorkPage } from "@/components/WorkPage";
 import { AboutPage } from "@/components/AboutPage";
 
 const Index = () => {
-  const [currentPage, setCurrentPage] = useState<"work" | "play" | "about">("play");
+  const [currentPage, setCurrentPage] = useState<"work" | "play" | "about">("work");
 
   return (
     <div className="min-h-screen bg-background">
@@ -14,8 +14,8 @@ const Index = () => {
       <Navigation currentPage={currentPage} onNavigate={setCurrentPage} />
       
       <main>
+        {currentPage === "work" && <WorkPage />}
         {currentPage === "play" && <PlayPage />}
-        {/* {currentPage === "work" && <WorkPage />} */}
         {currentPage === "about" && <AboutPage />}
       </main>
 

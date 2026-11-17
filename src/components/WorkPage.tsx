@@ -1,79 +1,86 @@
-const projects = [
-  {
-    id: 1,
-    title: "Brand Refresh — Acme Corp",
-    category: "BRAND IDENTITY",
-    year: "2024",
-    image: "https://images.unsplash.com/photo-1561070791-2526d30994b5?w=800&q=80",
-  },
-  {
-    id: 2,
-    title: "Product Design System",
-    category: "DESIGN SYSTEMS",
-    year: "2024",
-    image: "https://images.unsplash.com/photo-1545235617-9465d2a55698?w=800&q=80",
-  },
-  {
-    id: 3,
-    title: "Mobile App Experience",
-    category: "PRODUCT DESIGN",
-    year: "2023",
-    image: "https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?w=800&q=80",
-  },
-  {
-    id: 4,
-    title: "E-commerce Platform",
-    category: "WEB DESIGN",
-    year: "2023",
-    image: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=800&q=80",
-  },
-];
+import { useCallback, useState } from "react";
+import { GalleryCard } from "./GalleryCard";
+import { GalleryModal } from "./GalleryModal";
+import { webProjects, clientProjects, experimentProjects, figmaProjects, type Project } from "@/data/projects";
+
+const caseStudies = webProjects.filter((p) => p.caseStudy);
 
 export const WorkPage = () => {
+  const [openIndex, setOpenIndex] = useState<number | null>(null);
+
+  const openProject = useCallback((project: Project) => {
+    const i = caseStudies.findIndex((p) => p.id === project.id);
+    if (i >= 0) setOpenIndex(i);
+  }, []);
+
+  const close = useCallback(() => setOpenIndex(null), []);
+  const prev = useCallback(
+    () => setOpenIndex((i) => (i === null ? null : (i - 1 + caseStudies.length) % caseStudies.length)),
+    []
+  );
+  const next = useCallback(
+    () => setOpenIndex((i) => (i === null ? null : (i + 1) % caseStudies.length)),
+    []
+  );
+
   return (
-    <div className="min-h-screen pt-24 pb-16 px-6 md:px-12">
+    <div className="bg-[#0C0C0C] min-h-screen pt-24 pb-16 px-6 md:px-12 text-foreground">
       <header className="mb-16 max-w-4xl">
         <h1 className="text-display text-4xl md:text-6xl lg:text-7xl font-bold mb-6 tracking-tight">
           WORK
         </h1>
         <p className="text-muted-foreground text-lg md:text-xl max-w-2xl leading-relaxed">
-          Selected projects spanning brand identity, product design, and digital experiences.
+          Client work, experiments, open source and design. Case studies open in place.
         </p>
       </header>
 
-      <div className="space-y-24">
-        {projects.map((project, index) => (
-          <article
-            key={project.id}
-            className="group cursor-pointer opacity-0 animate-fade-up"
-            style={{ animationDelay: `${index * 150}ms`, animationFillMode: 'forwards' }}
-          >
-            <div className="grid md:grid-cols-2 gap-8 items-center">
-              <div className={index % 2 === 0 ? "md:order-1" : "md:order-2"}>
-                <div className="overflow-hidden bg-card aspect-[16/10]">
-                  <img
-                    src={project.image}
-                    alt={project.title}
-                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                  />
-                </div>
-              </div>
+      <section className="mb-20">
+        <h2 className="text-mono text-xs uppercase tracking-widest text-muted-foreground mb-8">
+          Client Work
+        </h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-px">
+          {clientProjects.map((project, index) => (
+            <GalleryCard key={project.id} project={project} index={index} onOpen={openProject} />
+          ))}
+        </div>
+      </section>
 
-              <div className={index % 2 === 0 ? "md:order-2" : "md:order-1"}>
-                <span className="text-mono text-xs text-muted-foreground uppercase tracking-widest mb-4 block">
-                  {project.category}
-                </span>
-                <h2 className="text-display text-2xl md:text-4xl font-semibold mb-4 group-hover:text-accent transition-colors duration-300">
-                  {project.title}
-                </h2>
-                <span className="text-mono text-sm text-muted-foreground">
-                  #{project.year}
-                </span>
-              </div>
-            </div>
-          </article>
-        ))}
-      </div>
+      <section className="mb-20">
+        <h2 className="text-mono text-xs uppercase tracking-widest text-muted-foreground mb-8">
+          Experiments &amp; Open Source
+        </h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-px">
+          {experimentProjects.map((project, index) => (
+            <GalleryCard
+              key={project.id}
+              project={project}
+              index={index + clientProjects.length}
+              onOpen={openProject}
+            />
+          ))}
+        </div>
+      </section>
+
+      <section>
+        <h2 className="text-mono text-xs uppercase tracking-widest text-muted-foreground mb-8">
+          Figma Projects
+        </h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-px">
+          {figmaProjects.map((project, index) => (
+            <GalleryCard key={project.id} project={project} index={index + webProjects.length} />
+          ))}
+        </div>
+      </section>
+
+      <GalleryModal
+        isOpen={openIndex !== null}
+        item={openIndex === null ? null : caseStudies[openIndex]}
+        currentIndex={openIndex ?? 0}
+        totalItems={caseStudies.length}
+        onClose={close}
+        onPrev={prev}
+        onNext={next}
+      />
     </div>
   );
 };
