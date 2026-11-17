@@ -68,3 +68,17 @@ bottom). The top bulb holds the time left in the current hour and the piece flip
 - `src/components/Hourglass.tsx` — canvas plus the "ROTATION · LEFT THIS HOUR · GLINTS" label
   and a polite live region updated at most once a minute.
 - Used in `src/components/PlayPage.tsx` under Experiments.
+
+## ASCII meadow (Play, piece 03)
+
+A low-angle meadow of blue flowers drawn as text. Grass blades and seven species (delphinium,
+aster, agapanthus, globe thistle, anemone, columbine, sea holly) are vector shapes rasterised into
+a character grid every frame; each plant has a depth that sets its size, position, brightness and
+draw order. Grass grows first, flowers open in a front-to-back wave, and a breeze travels left to
+right with a gust every nine seconds.
+
+- `src/lib/meadow.ts` — renderer. Tunables in `MEADOW_CONFIG`: font size, ramp, horizon, blade and
+  flower counts, atmospheric fade, growth timings, wind speed/length/amount, gust period, star
+  density, layout seed, frame cap.
+- `src/components/Meadow.tsx` — canvas that fills its parent.
+- Used in `src/components/PlayPage.tsx` under Experiments.
