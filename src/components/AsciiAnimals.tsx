@@ -33,7 +33,7 @@ export const AsciiAnimals = ({ animal, className }: AsciiAnimalsProps) => {
     <canvas
       ref={ref}
       aria-hidden="true"
-      className={cn("pointer-events-none fixed inset-0 -z-10 h-[100vh] w-[100vw]", className)}
+      className={cn("pointer-events-none fixed inset-0 -z-10 h-[100vh] w-[100vw] opacity-70", className)}
     />
   );
 };

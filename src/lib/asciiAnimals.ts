@@ -14,8 +14,15 @@ export type AnimalId = "dragonflies" | "koi" | "jellyfish";
 export const ASCII_ANIMALS_CONFIG = {
   // Cell size in CSS px. Smaller = finer animals, more cells to fill.
   cell: 9,
+  // "mono": greys plus the site accent on strongly coloured parts, so the
+  // scene sits inside the portfolio's palette. "color": the original hues.
+  theme: "mono" as "mono" | "color",
+  // Accent used by the mono theme. Matches --accent (hsl 24 100% 50%).
+  accent: [255, 102, 0] as [number, number, number],
+  // Saturation above which a part takes the accent instead of grey (0..1).
+  accentFrom: 0.55,
   // Population multiplier on each animal's base count (scaled by viewport area).
-  density: 1,
+  density: 0.8,
   // Global speed multiplier.
   speed: 1,
   // Global size multiplier.
@@ -320,9 +327,22 @@ export const ANIMAL_BY_ID = Object.fromEntries(ANIMALS.map((a) => [a.id, a])) as
 export const ANIMAL_ORDER: AnimalId[] = ANIMALS.map((a) => a.id);
 export const DEFAULT_ANIMAL: AnimalId = "dragonflies";
 
-export function swatchCss(id: AnimalId) {
-  const [r, g, b] = ANIMAL_BY_ID[id].swatch;
-  return `rgb(${r},${g},${b})`;
+/** Map a colour into the current theme: untouched for "color", grey + accent for "mono". */
+export function toneColor(r: number, g: number, b: number, cfg = ASCII_ANIMALS_CONFIG): RGB {
+  if (cfg.theme === "color") return [r, g, b];
+  const lum = 0.299 * r + 0.587 * g + 0.114 * b;
+  const mx = Math.max(r, g, b);
+  const sat = mx > 0 ? (mx - Math.min(r, g, b)) / mx : 0;
+  if (sat < cfg.accentFrom) return [lum, lum, lum];
+  const k = Math.min(1, (sat - cfg.accentFrom) / (1 - cfg.accentFrom) + 0.35);
+  const scale = lum / 160; // keep the accent's brightness tied to the original shade
+  const [ar, ag, ab] = cfg.accent;
+  return [lerp(lum, ar * scale, k), lerp(lum, ag * scale, k), lerp(lum, ab * scale, k)];
+}
+
+export function swatchCss(id: AnimalId, cfg = ASCII_ANIMALS_CONFIG) {
+  const [r, g, b] = toneColor(...ANIMAL_BY_ID[id].swatch, cfg);
+  return `rgb(${r | 0},${g | 0},${b | 0})`;
 }
 
 /* ---------- renderer ---------- */
@@ -579,16 +599,17 @@ export function createAsciiAnimals(canvas: HTMLCanvasElement, initial: AnimalId,
         const idx = j * R.cols + i;
         const a = out.a * fade;
         if (a <= 0.01) continue;
+        const [tr, tg, tb] = toneColor(out.r, out.g, out.b, cfg);
         if (out.ch) {
           const set = out.ch;
           const ch = set.length > 1 ? set[(hash2(i, j, e.seed + tick) * set.length) | 0] : set;
-          glyphs.push(i, j, order, out.r * bright, out.g * bright, out.b * bright, a * (0.45 + 0.55 * bright), ch);
+          glyphs.push(i, j, order, tr * bright, tg * bright, tb * bright, a * (0.45 + 0.55 * bright), ch);
           continue;
         }
         const jit = 0.86 + 0.28 * hash2(i, j, e.seed);
-        let r = out.r * jit;
-        let g = out.g * jit;
-        let b = out.b * jit;
+        let r = tr * jit;
+        let g = tg * jit;
+        let b = tb * jit;
         if (out.shine && hash2(i, j, e.seed ^ 77) < out.shine * 0.18) {
           r = lerp(r, 245, 0.65);
           g = lerp(g, 248, 0.65);
@@ -619,9 +640,10 @@ export function createAsciiAnimals(canvas: HTMLCanvasElement, initial: AnimalId,
     if (Math.random() > 0.75) return;
     tLife[idx] = lerp(0.35, 0.9, e.z);
     tChar[idx] = (Math.random() * tr.chars.length) | 0;
-    tCol[idx * 3] = tr.color[0];
-    tCol[idx * 3 + 1] = tr.color[1];
-    tCol[idx * 3 + 2] = tr.color[2];
+    const [cr, cg, cb] = toneColor(tr.color[0], tr.color[1], tr.color[2], cfg);
+    tCol[idx * 3] = cr;
+    tCol[idx * 3 + 1] = cg;
+    tCol[idx * 3 + 2] = cb;
   }
 
   function render(dt: number) {

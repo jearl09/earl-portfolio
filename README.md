@@ -44,6 +44,8 @@ in localStorage. The Play tab has no scene.
 - `src/lib/asciiAnimals.ts` — simulation and renderer, adapted from
   [ASCII Animals New Tab](https://github.com/Pawan-webdeveloper/Ascii-Animals-extension)
   by Pawan-webdeveloper (MIT), trimmed to three animals and a transparent canvas.
-  Tunables in `ASCII_ANIMALS_CONFIG` (cell size, density, speed, size, depth, sway, trails).
+  Tunables in `ASCII_ANIMALS_CONFIG` (theme `mono` | `color`, accent, cell size, density, speed,
+  size, depth, sway, trails). The default `mono` theme tones the animals to greys with the site's
+  orange accent on their coloured parts so they sit inside the portfolio palette.
 - `src/components/AsciiAnimals.tsx` — fixed full-viewport canvas behind the page.
 - Wiring (which tabs show it, the cycle button, persistence) lives in `src/pages/Index.tsx`.
