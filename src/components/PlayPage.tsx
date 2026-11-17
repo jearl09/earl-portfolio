@@ -1,13 +1,22 @@
 import { ArrowUpRight } from "lucide-react";
 import { BlackHole } from "./BlackHole";
+import { Hourglass } from "./Hourglass";
 
 const SOURCE_URL = "https://github.com/jearl09/earl-portfolio/blob/main/src/lib/blackhole.ts";
+const HOURGLASS_SOURCE_URL = "https://github.com/jearl09/earl-portfolio/blob/main/src/lib/hourglass.ts";
 
 const notes = [
   ["Render", "2D canvas, monospace glyphs, one string per row per colour"],
   ["Physics", "Shadow, photon ring, Doppler-beamed disk, lensed far side"],
   ["Motion", "Keplerian shear, shimmer, mouse parallax, bloom"],
   ["Weight", "Zero dependencies, pauses offscreen, honours reduced motion"],
+];
+
+const hourglassNotes = [
+  ["Render", "Orthographic rays, raymarched signed distance fields, 96 \u00d7 66 cells"],
+  ["Model", "Caps, inset rings, three turned pillars, glass shell, volume-accurate sand"],
+  ["Time", "Top bulb holds what is left of the hour; it flips over at :00"],
+  ["Weight", "Zero dependencies, pauses offscreen, still frame under reduced motion"],
 ];
 
 export const PlayPage = () => {
@@ -73,6 +82,40 @@ export const PlayPage = () => {
               </div>
             ))}
           </dl>
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-12 max-w-6xl mt-24 items-start">
+          <div className="order-2 md:order-1">
+            <h3 className="text-display text-2xl md:text-3xl font-bold tracking-tight mb-4">
+              <span className="text-accent text-mono text-xs align-top mr-3">02</span>
+              Hourglass
+            </h3>
+            <p className="text-muted-foreground leading-relaxed mb-6">
+              A turned-wood hourglass rendered by casting a ray through every character cell and marching
+              signed distance fields: no 3D library. The glass is a thin shell with a Fresnel rim, the sand
+              volume is integrated so what leaves the top lands in the bottom, and the top bulb empties with
+              the hour on your clock.
+            </p>
+            <a
+              href={HOURGLASS_SOURCE_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 text-mono text-xs uppercase tracking-widest text-foreground hover:text-accent transition-colors duration-300 mb-10"
+            >
+              View source <ArrowUpRight className="h-4 w-4" />
+            </a>
+            <dl className="border-t border-border">
+              {hourglassNotes.map(([k, v]) => (
+                <div key={k} className="grid grid-cols-[6rem_1fr] gap-4 py-4 border-b border-border">
+                  <dt className="text-mono text-xs uppercase tracking-widest text-muted-foreground">{k}</dt>
+                  <dd className="text-sm text-foreground/85 leading-relaxed">{v}</dd>
+                </div>
+              ))}
+            </dl>
+          </div>
+          <div className="order-1 md:order-2 flex justify-center md:justify-end">
+            <Hourglass />
+          </div>
         </div>
       </section>
     </div>

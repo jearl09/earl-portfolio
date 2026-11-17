@@ -49,3 +49,19 @@ in localStorage. The Play tab has no scene.
   orange accent on their coloured parts so they sit inside the portfolio palette.
 - `src/components/AsciiAnimals.tsx` — fixed full-viewport canvas behind the page.
 - Wiring (which tabs show it, the cycle button, persistence) lives in `src/pages/Index.tsx`.
+
+## ASCII hourglass (Play, piece 02)
+
+A spinning 3D hourglass drawn as text. No 3D library: each character cell casts an
+orthographic ray and raymarches signed distance fields (two caps with inset rings, three
+lathe-turned pillars, a thin glass shell of revolution with a Fresnel rim and specular glints,
+and sand whose levels come from a volume lookup table so what leaves the top lands in the
+bottom). The top bulb holds the time left in the current hour and the piece flips over at :00.
+
+- `src/lib/hourglass.ts` — renderer. Tunables in `HOURGLASS_CONFIG`: grid size (desktop and
+  mobile), font size, character ramp, rotation speed, camera tilt, light direction, glass rim
+  strength, opacity buckets, accent, particle count, `timescale` (`hour` | `day` | `countdown`
+  with `countdownTo`), flip duration, frame-rate cap.
+- `src/components/Hourglass.tsx` — canvas plus the "ROTATION · LEFT THIS HOUR · GLINTS" label
+  and a polite live region updated at most once a minute.
+- Used in `src/components/PlayPage.tsx` under Experiments.
