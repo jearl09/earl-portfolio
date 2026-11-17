@@ -13,9 +13,9 @@ describe("wings", () => {
     const F = buildWing();
     const flight = F.filter((f) => f.kind === "flight");
     expect(flight).toHaveLength(10 + 13 + 6);
-    expect(F.filter((f) => f.kind === "covert")).toHaveLength(flight.length + Math.floor(flight.length / 2));
-    expect(F.filter((f) => f.kind === "lesser")).toHaveLength(3 * 23);
-    expect(F.filter((f) => f.kind === "scapular")).toHaveLength(8);
+    expect(F.filter((f) => f.kind === "covert")).toHaveLength(2 * flight.length);
+    expect(F.filter((f) => f.kind === "lesser")).toHaveLength(6 * 29);
+    expect(F.filter((f) => f.kind === "scapular")).toHaveLength(10);
     // outermost primary lies nearly along the leading edge
     const outer = flight.reduce((a, b) => (b.reach > a.reach ? b : a));
     expect(Math.abs(outer.ang)).toBeLessThan(20);

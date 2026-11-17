@@ -22,14 +22,14 @@ export const WINGS_CONFIG = {
   // Breeze strength (radians of feather sway at the tips).
   breeze: 1,
   // Body gap between the wing roots as a fraction of the width.
-  bodyGap: 0.07,
+  bodyGap: 0.12,
   // Feather colours: shadow → silver → white, and the bloom tint.
   shadow: [24, 26, 38] as [number, number, number],
   silver: [192, 196, 208] as [number, number, number],
   white: [255, 255, 255] as [number, number, number],
   ivory: [255, 240, 200] as [number, number, number],
   // Faint photographic grit in the background (0 = none).
-  grain: 0,
+  grain: 0.5,
   // Frame-rate cap.
   maxFps: 30,
   // Cap on devicePixelRatio.
@@ -73,54 +73,55 @@ export function featherProfile(t: number) {
 /** Build the right wing's feathers in units of the bone length. */
 export function buildWing(): Feather[] {
   const F: Feather[] = [];
-  // skeleton (y down): shoulder, elbow, wrist, tip
-  const S = [0, 0], E = [0.2, -0.1], Wr = [0.62, -0.26], T = [1.0, -0.2];
+  // skeleton (x outward, y down): shoulder, elbow, wrist, tip — a gliding pose with a raised wrist
+  const S = [0, 0], E = [0.18, -0.06], Wr = [0.72, -0.2], T = [0.98, -0.22];
   const on = (a: number[], b: number[], t: number) => [lerp(a[0], b[0], t), lerp(a[1], b[1], t)];
+  const edge = (u: number) => (u < 0.18 ? on(S, E, u / 0.18) : u < 0.72 ? on(E, Wr, (u - 0.18) / 0.54) : on(Wr, T, (u - 0.72) / 0.28));
+  const jit = (k: number, a: number) => (hash2(k * 13 + 5, 91) - 0.5) * a;
   let seed = 1;
   const add = (p: number[], ang: number, len: number, hw: number, reach: number, base: number, kind: Feather["kind"]) =>
     F.push({ ax: p[0], ay: p[1], ang, len, hw, reach, base, seed: seed++, kind });
 
-  // flight feathers, drawn outer → inner so inner ones lie on top
+  // flight feathers: greyer, with bright shafts; drawn outer → inner so inner ones lie on top
   const prim: Feather[] = [], sec: Feather[] = [], ter: Feather[] = [];
   for (let k = 9; k >= 0; k--) {
     const u = k / 9;
-    const p = on(Wr, T, 0.08 + 0.92 * u);
-    const ang = lerp(58, -14, Math.pow(u, 0.75)); // inner hangs down-out, outer sweeps up along the leading edge
-    const len = lerp(0.8, 1.06, u);
-    prim.push({ ax: p[0], ay: p[1], ang, len, hw: lerp(0.034, 0.024, u), reach: 0.62 + 0.38 * u, base: 0.8, seed: seed++, kind: "flight" });
+    const p = on(Wr, T, 0.05 + 0.95 * u);
+    const ang = lerp(50, -9, Math.pow(u, 0.7)) + jit(k, 3); // inner hangs down-out, outer sweeps out along the leading edge
+    const len = lerp(0.7, 1.0, u) * (1 + jit(k + 20, 0.06));
+    prim.push({ ax: p[0], ay: p[1], ang, len, hw: lerp(0.034, 0.02, u), reach: 0.72 + 0.28 * u, base: 0.66, seed: seed++, kind: "flight" });
   }
   for (let k = 12; k >= 0; k--) {
     const u = k / 12;
     const p = on(E, Wr, u);
-    sec.push({ ax: p[0], ay: p[1], ang: lerp(100, 76, u), len: lerp(0.78, 0.88, u), hw: 0.03, reach: 0.22 + 0.4 * u, base: 0.78, seed: seed++, kind: "flight" });
+    sec.push({ ax: p[0], ay: p[1], ang: lerp(98, 66, u) + jit(k + 40, 4), len: lerp(0.72, 0.8, u) * (1 + jit(k + 60, 0.08)), hw: 0.036, reach: 0.18 + 0.54 * u, base: 0.62, seed: seed++, kind: "flight" });
   }
   for (let k = 5; k >= 0; k--) {
     const u = k / 5;
-    const p = on(S, E, 0.05 + 0.9 * u);
-    ter.push({ ax: p[0], ay: p[1], ang: lerp(112, 102, u), len: lerp(0.62, 0.74, u), hw: 0.034, reach: 0.02 + 0.2 * u, base: 0.76, seed: seed++, kind: "flight" });
+    const p = on(S, E, 0.06 + 0.9 * u);
+    ter.push({ ax: p[0], ay: p[1], ang: lerp(108, 100, u) + jit(k + 80, 3), len: lerp(0.62, 0.72, u), hw: 0.036, reach: 0.02 + 0.16 * u, base: 0.6, seed: seed++, kind: "flight" });
   }
   F.push(...prim, ...sec, ...ter);
 
-  // greater coverts: same anchors, half length
-  for (const f of [...prim, ...sec, ...ter]) add([f.ax + 0.01, f.ay + 0.01], f.ang + 3, f.len * 0.5, f.hw * 0.95, f.reach, 0.78, "covert");
-  // median coverts: a third, slightly offset
-  [...prim, ...sec, ...ter].forEach((f, i) => {
-    if (i % 2) add([f.ax + 0.035, f.ay + 0.01], f.ang + 8, f.len * 0.3, f.hw * 0.9, f.reach, 0.84, "covert");
-  });
-  // three rows of small scalloped lesser coverts along the leading edge
-  for (let row = 2; row >= 0; row--) {
-    const n = 22;
+  // greater coverts: half length, brighter, over every flight feather
+  for (const f of [...prim, ...sec, ...ter]) add([f.ax + 0.01, f.ay + 0.012], f.ang + 3, f.len * 0.46, f.hw * 1.05, f.reach, 0.82, "covert");
+  // median coverts: a third, offset between the greater ones
+  for (const f of [...prim, ...sec, ...ter]) add([f.ax + 0.028, f.ay + 0.01], f.ang + 7, f.len * 0.3, f.hw * 1.0, f.reach, 0.9, "covert");
+  // six rows of small scalloped lesser coverts: a solid bright mass under the leading edge
+  for (let row = 5; row >= 0; row--) {
+    const n = 28;
+    const depth = 0.03 + row * 0.034; // rows stack down from the bone
     for (let k = n; k >= 0; k--) {
       const u = k / n;
-      const seg = u < 0.2 ? on(S, E, u / 0.2) : u < 0.62 ? on(E, Wr, (u - 0.2) / 0.42) : on(Wr, T, (u - 0.62) / 0.38);
-      const nx = 0, ny = 1; // roughly perpendicular to the (nearly horizontal) bones
-      add([seg[0] + nx * row * 0.05 + 0.012, seg[1] + ny * row * 0.055 + 0.02], lerp(104, 40, u) + row * 4, lerp(0.18, 0.13, row / 2), 0.022, u, 0.9 - row * 0.03, "lesser");
+      const p = edge(u);
+      const size = lerp(0.2, 0.1, row / 5) * lerp(1.1, 0.85, u);
+      add([p[0] + 0.01 + (row % 2) * 0.012, p[1] + depth], lerp(102, 38, u) + row * 3, size, 0.021, u, 0.96 - row * 0.015, "lesser");
     }
   }
-  // soft scapulars at the root, lying over the bone
-  for (let k = 7; k >= 0; k--) {
-    const u = k / 7;
-    add([0.02 + u * 0.22, -0.03 - u * 0.07], lerp(-10, -45, u) + 60 * u, 0.26, 0.04, u * 0.2, 0.86, "scapular");
+  // soft shoulder fluff at the root, over and above the bone
+  for (let k = 9; k >= 0; k--) {
+    const u = k / 9;
+    add([-0.02 + u * 0.26, -0.1 - Math.sin(u * Math.PI) * 0.06], lerp(-30, 40, u), lerp(0.24, 0.2, u), 0.04, u * 0.25, 0.95, "scapular");
   }
   return F;
 }
@@ -164,7 +165,7 @@ export function createWings(canvas: HTMLCanvasElement, options: Partial<WingsCon
     G = new Float32Array(cols * rows);
     gap = (W * cfg.bodyGap) / 2;
     // primaries reach ~1.95 bone lengths from the shoulder; hanging feathers ~0.8 below the elbow
-    Lb = Math.min((W / 2 - gap - W * 0.02) / 2.05, Hh / 1.4);
+    Lb = Math.min((W / 2 - gap - W * 0.02) / 2.0, Hh / 1.3);
     shX = W / 2 + gap;
     shY = Hh * 0.5;
   }
@@ -196,7 +197,7 @@ export function createWings(canvas: HTMLCanvasElement, options: Partial<WingsCon
       const w = Math.max(cellW * 0.35, hw * featherProfile(tt));
       const cxp = bx + dx * s, cyp = by + dy * s;
       // shimmer band by distance from the shoulder
-      const dn = Math.hypot(cxp - ox, cyp - shY) / (Lb * 2.05);
+      const dn = Math.hypot(cxp - ox, cyp - shY) / (Lb * 2.0);
       const band = Math.exp(-Math.pow((dn - shimmerC) / 0.07, 2)) * 0.32 * cfg.shine;
       for (let u = -w; u <= w; u += stepU) {
         const au = Math.abs(u);
@@ -219,9 +220,9 @@ export function createWings(canvas: HTMLCanvasElement, options: Partial<WingsCon
     const ox = side === 1 ? shX : W - shX;
     const pts = [
       [0, 0],
-      [0.2, -0.1],
-      [0.62, -0.26],
-      [1.0, -0.2],
+      [0.18, -0.06],
+      [0.72, -0.2],
+      [0.98, -0.22],
     ];
     for (let k = 0; k < pts.length - 1; k++) {
       const a = pts[k], b = pts[k + 1];
