@@ -32,10 +32,10 @@ const meadowNotes = [
 ];
 
 const wingsNotes = [
-  ["Render", "Procedural feathers rasterised into a 6px character grid, each cell coloured shadow → silver → white"],
-  ["Anatomy", "Shoulder, elbow, wrist, tip; tertials, secondaries, primaries, three tiers of coverts, scapulars"],
-  ["Shine", "The brightest cells bloom ivory into the empty cells around them; a band of light sweeps root to tip"],
-  ["Motion", "A still, spread pose that only breathes in the breeze; a static frame under reduced motion"],
+  ["Source", "A photograph of a wing, cleaned once: levels, gamma, cutoff and an unsharp mask"],
+  ["Rig", "A mesh of 960 triangles skinned to shoulder, elbow and hand; the mirror image makes the left wing"],
+  ["Render", "Each 5px cell averages the warped photo; strong gradients become / \\ | - strokes"],
+  ["Shine", "The brightest cells bloom ivory into the dark around them; a band of light sweeps root to tip"],
 ];
 
 export const PlayPage = () => {
@@ -181,7 +181,7 @@ export const PlayPage = () => {
         </div>
 
         <div className="mt-24">
-          <div className="-mx-6 md:-mx-12 aspect-[4/3] md:aspect-auto md:h-[62vh] overflow-hidden">
+          <div className="-mx-6 md:-mx-12 aspect-[4/3] md:aspect-auto md:h-[85vh] overflow-hidden">
             <Wings />
           </div>
           <div className="grid md:grid-cols-2 gap-12 mt-10 max-w-6xl">
@@ -191,9 +191,10 @@ export const PlayPage = () => {
                 Wings
               </h3>
               <p className="text-muted-foreground leading-relaxed mb-6">
-                A pair of white wings built feather by feather on a real wing skeleton and drawn as text. Every
-                feather has a bright shaft, barbed vanes and darker edges so the overlaps read; the brightest
-                cells bloom into the dark around them while a band of light sweeps from root to tip.
+                A photograph of a wing, mirrored into a pair and redrawn as text. Each frame the photo is warped
+                over a three-bone rig so the wings beat slowly with the tips trailing, then every character cell
+                averages what lies under it; feather edges and shafts turn into directional strokes, and the
+                brightest cells bloom into the dark around them while a band of light sweeps root to tip.
               </p>
               <a
                 href={WINGS_SOURCE_URL}

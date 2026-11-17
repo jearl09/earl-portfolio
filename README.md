@@ -85,13 +85,18 @@ right with a gust every nine seconds.
 
 ## ASCII wings (Play, piece 04)
 
-A pair of white wings drawn as text. Each wing is built from procedural feathers (tertials,
-secondaries, primaries, greater/median/lesser coverts, scapulars) anchored to a shoulder → elbow →
-wrist → tip skeleton and mirrored around a body gap. Cells run from cool shadow through silver to
-white; the brightest cells bloom ivory into the empty cells around them and a band of light sweeps
-root to tip. The wings hold a spread pose and only move with a breeze.
+A pair of white wings drawn as text, driven by a photograph (`public/wing.png`: a white wing on
+black, root left, tip right). On load the photo is cleaned once (levels, gamma, a transparency
+cutoff so the grunge never becomes characters, an unsharp mask so shafts survive). Every frame it
+is warped over a three-bone rig (shoulder → elbow → hand, with the elbow and hand lagging so the
+tips trail; primaries flex and spread, tips flutter) through a 40 × 12 mesh of textured triangles
+into a small offscreen canvas at two pixels per cell, read back once, averaged per character cell
+and mapped to a dense ramp; strong gradients become directional strokes. The left wing is the
+mirror image. Cells run shadow → silver → white, the brightest bloom ivory into the empty cells
+around them, a band of light sweeps root to tip, and faint grit sits behind.
 
-- `src/lib/wings.ts` — renderer. Tunables in `WINGS_CONFIG`: cell size, ramp, shine, shimmer period,
-  breeze, body gap, colours, grain, frame cap.
+- `src/lib/wings.ts` — renderer. Tunables in `WINGS_CONFIG`: source, cell width, ramp, preprocess
+  curve, edge threshold, flap amplitude/period/lags, flex and flutter, shine, shimmer period, body
+  gap, colours, grain, frame cap.
 - `src/components/Wings.tsx` — canvas that fills its parent.
 - Used in `src/components/PlayPage.tsx` under Experiments.

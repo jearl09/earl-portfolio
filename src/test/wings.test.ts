@@ -1,23 +1,25 @@
 import { describe, it, expect } from "vitest";
-import { buildWing, featherProfile } from "@/lib/wings";
+import { boneWeights, edgeGlyph, levels } from "@/lib/wings";
 
 describe("wings", () => {
-  it("feather profile is rounded at the base and pointed at the tip", () => {
-    expect(featherProfile(0)).toBe(0);
-    expect(featherProfile(0.3)).toBeGreaterThan(0.8);
-    expect(featherProfile(0.95)).toBeLessThan(0.3);
-    expect(featherProfile(1)).toBe(0);
+  it("levels curve clamps and keeps whites bright", () => {
+    expect(levels(0.05, 0.08, 0.86, 0.9)).toBe(0);
+    expect(levels(0.9, 0.08, 0.86, 0.9)).toBe(1);
+    expect(levels(0.5, 0.08, 0.86, 0.9)).toBeGreaterThan(0.5);
   });
 
-  it("builds the full feather set for one wing", () => {
-    const F = buildWing();
-    const flight = F.filter((f) => f.kind === "flight");
-    expect(flight).toHaveLength(10 + 13 + 6);
-    expect(F.filter((f) => f.kind === "covert")).toHaveLength(2 * flight.length);
-    expect(F.filter((f) => f.kind === "lesser")).toHaveLength(6 * 29);
-    expect(F.filter((f) => f.kind === "scapular")).toHaveLength(10);
-    // outermost primary lies nearly along the leading edge
-    const outer = flight.reduce((a, b) => (b.reach > a.reach ? b : a));
-    expect(Math.abs(outer.ang)).toBeLessThan(20);
+  it("bone weights: shoulder-only at the root, elbow then hand further out", () => {
+    expect(boneWeights(0.1)).toEqual([0, 0]);
+    const [e, h] = boneWeights(0.5);
+    expect(e).toBe(1);
+    expect(h).toBe(0);
+    expect(boneWeights(0.9)).toEqual([1, 1]);
+  });
+
+  it("edge glyphs run across the gradient", () => {
+    expect(edgeGlyph(1, 0)).toBe("|");
+    expect(edgeGlyph(0, 1)).toBe("-");
+    expect(edgeGlyph(1, -1)).toBe("/");
+    expect(edgeGlyph(1, 1)).toBe("\\");
   });
 });

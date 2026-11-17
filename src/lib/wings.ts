@@ -1,38 +1,69 @@
 /* ==========================================================================
-   wings.ts — a pair of white wings drawn as text. Each wing is built from
-   procedural feathers (tertials, secondaries, primaries, three tiers of
-   coverts, scapulars) anchored to a shoulder → elbow → wrist → tip skeleton
-   and mirrored around a body gap. Every frame the feathers are rasterised
-   into a character grid: brightness picks a glyph, the cell keeps a colour
-   from cool shadow through silver to white, and the brightest cells bloom
-   into the empty cells around them. The wings hold a spread pose and move
-   only with a breeze. Plain TypeScript; React wrapper: components/Wings.tsx.
+   wings.ts — a pair of white wings drawn as text, driven by a photograph.
+   /public/wing.png (a white wing on black, root left, tip right) is cleaned
+   once on load (levels, gamma, cutoff, unsharp), then every frame it is
+   warped over a 3-bone rig (shoulder → elbow → hand) through a mesh of
+   triangles into a small offscreen canvas, read back once, averaged per
+   character cell and mapped to a dense ramp, with directional characters
+   where the gradient is strong. The left wing is the mirror image. The
+   brightest cells bloom ivory into the empty cells around them, a band of
+   light sweeps root → tip, and faint grit sits behind. Plain TypeScript;
+   React wrapper: components/Wings.tsx.
    ========================================================================== */
 
 export const WINGS_CONFIG = {
-  // Font size in CSS px (cell height); cell width follows the font's advance.
-  cellSize: 6,
-  cellSizeMobile: 5,
-  // Density ramp, dim → bright.
-  ramp: " .,:;-~=+*xX#%@",
-  // Shine: bloom reach and strength around the brightest cells, feather boost,
-  // and the shimmer band that sweeps root → tip.
+  // Source photo: white wing on black, extended horizontally, root on the left.
+  src: "/wing.png",
+  // Target character cell width in CSS px. Font size is derived so a glyph
+  // fills the cell and the row height equals the glyph height.
+  cellWidth: 2.8,
+  cellWidthMobile: 2.4,
+  // Dense ramp, dark → bright.
+  ramp: " .'`,:;~-=+*x%#@",
+  // Preprocess: levels (black/white points), gamma, transparency cutoff, unsharp amount.
+  blackPoint: 0.08,
+  whitePoint: 1.0,
+  gamma: 1.0,
+  cutoff: 0.12,
+  sharpen: 0.25,
+  // Local contrast: how much each pixel is judged against its neighbourhood
+  // (0 = plain luminance, 1 = pure detail). Brings out scallops inside the white mass.
+  local: 0.55,
+  localRadius: 7,
+  localGain: 2.4,
+  // Grunge mask: regions whose wide-area mean luminance is below this are background.
+  maskRadius: 14,
+  maskFrom: 0.2,
+  maskTo: 0.34,
+  // Tone curve on the cell luminance before the ramp: >1 spreads the highlights over more glyphs.
+  tone: 1.0,
+  // Gradient magnitude above which a cell uses a directional character.
+  edgeThreshold: 0.35,
+  // Rig: flap amplitude at the shoulder, cycle length, lag of elbow and hand
+  // (radians behind the shoulder) and how much of the amplitude they add.
+  flapDeg: 3,
+  flapPeriod: 5.5,
+  elbowLag: 0.4,
+  handLag: 0.8,
+  elbowRatio: 0.3,
+  handRatio: 0.3,
+  // Primaries flex against the motion (degrees) and tip flutter amplitude (px).
+  flexDeg: 3,
+  flutter: 1.2,
+  // Shine: bloom strength and the shimmer band period (seconds).
   shine: 1,
   shimmerEvery: 4.5,
-  // Breeze strength (radians of feather sway at the tips).
-  breeze: 1,
   // Body gap between the wing roots as a fraction of the width.
-  bodyGap: 0.12,
-  // Feather colours: shadow → silver → white, and the bloom tint.
+  bodyGap: 0.04,
+  // Colours: shadow → silver → white, and the bloom tint.
   shadow: [24, 26, 38] as [number, number, number],
   silver: [192, 196, 208] as [number, number, number],
   white: [255, 255, 255] as [number, number, number],
   ivory: [255, 240, 200] as [number, number, number],
-  // Faint photographic grit in the background (0 = none).
+  // Faint photographic grit (0 = none).
   grain: 0.5,
-  // Frame-rate cap.
+  // Frame-rate cap and DPR cap.
   maxFps: 30,
-  // Cap on devicePixelRatio.
   maxDpr: 2,
   // Canvas font. null reads the site's --font-mono token.
   fontFamily: null as string | null,
@@ -43,6 +74,10 @@ export type WingsConfig = typeof WINGS_CONFIG;
 type RGB = [number, number, number];
 const clamp = (v: number, a: number, b: number) => (v < a ? a : v > b ? b : v);
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
+const smooth = (a: number, b: number, x: number) => {
+  const t = clamp((x - a) / (b - a), 0, 1);
+  return t * t * (3 - 2 * t);
+};
 const D2R = Math.PI / 180;
 
 function hash2(i: number, j: number) {
@@ -51,79 +86,24 @@ function hash2(i: number, j: number) {
   return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
 }
 
-/* ---------- feather plan (built once per layout) ---------- */
+/* ---------- pure helpers (exported for tests) ---------- */
 
-interface Feather {
-  ax: number; // anchor, right-wing local units (x outward, y down), × Lb
-  ay: number;
-  ang: number; // degrees, 0 = outward, 90 = straight down
-  len: number; // × Lb
-  hw: number; // half width × Lb
-  reach: number; // 0 at the shoulder … 1 at the tip, drives breeze and shimmer
-  base: number; // base brightness
-  seed: number;
-  kind: "flight" | "covert" | "lesser" | "scapular";
+/** Levels + gamma curve on a 0..1 luminance. */
+export function levels(l: number, black: number, white: number, gamma: number) {
+  return Math.pow(clamp((l - black) / (white - black), 0, 1), gamma);
 }
 
-/** Pointed-tip width profile: rounded base, pointed end. */
-export function featherProfile(t: number) {
-  return Math.pow(Math.min(1, t / 0.14), 0.5) * Math.pow(1 - t, 0.55) * 1.15;
+/** Bone weights by position along the wing: [elbow, hand]; the shoulder moves everything. */
+export function boneWeights(u: number): [number, number] {
+  return [smooth(0.2, 0.45, u), smooth(0.5, 0.75, u)];
 }
 
-/** Build the right wing's feathers in units of the bone length. */
-export function buildWing(): Feather[] {
-  const F: Feather[] = [];
-  // skeleton (x outward, y down): shoulder, elbow, wrist, tip — a gliding pose with a raised wrist
-  const S = [0, 0], E = [0.18, -0.06], Wr = [0.72, -0.2], T = [0.98, -0.22];
-  const on = (a: number[], b: number[], t: number) => [lerp(a[0], b[0], t), lerp(a[1], b[1], t)];
-  const edge = (u: number) => (u < 0.18 ? on(S, E, u / 0.18) : u < 0.72 ? on(E, Wr, (u - 0.18) / 0.54) : on(Wr, T, (u - 0.72) / 0.28));
-  const jit = (k: number, a: number) => (hash2(k * 13 + 5, 91) - 0.5) * a;
-  let seed = 1;
-  const add = (p: number[], ang: number, len: number, hw: number, reach: number, base: number, kind: Feather["kind"]) =>
-    F.push({ ax: p[0], ay: p[1], ang, len, hw, reach, base, seed: seed++, kind });
-
-  // flight feathers: greyer, with bright shafts; drawn outer → inner so inner ones lie on top
-  const prim: Feather[] = [], sec: Feather[] = [], ter: Feather[] = [];
-  for (let k = 9; k >= 0; k--) {
-    const u = k / 9;
-    const p = on(Wr, T, 0.05 + 0.95 * u);
-    const ang = lerp(50, -9, Math.pow(u, 0.7)) + jit(k, 3); // inner hangs down-out, outer sweeps out along the leading edge
-    const len = lerp(0.7, 1.0, u) * (1 + jit(k + 20, 0.06));
-    prim.push({ ax: p[0], ay: p[1], ang, len, hw: lerp(0.034, 0.02, u), reach: 0.72 + 0.28 * u, base: 0.66, seed: seed++, kind: "flight" });
-  }
-  for (let k = 12; k >= 0; k--) {
-    const u = k / 12;
-    const p = on(E, Wr, u);
-    sec.push({ ax: p[0], ay: p[1], ang: lerp(98, 66, u) + jit(k + 40, 4), len: lerp(0.72, 0.8, u) * (1 + jit(k + 60, 0.08)), hw: 0.036, reach: 0.18 + 0.54 * u, base: 0.62, seed: seed++, kind: "flight" });
-  }
-  for (let k = 5; k >= 0; k--) {
-    const u = k / 5;
-    const p = on(S, E, 0.06 + 0.9 * u);
-    ter.push({ ax: p[0], ay: p[1], ang: lerp(108, 100, u) + jit(k + 80, 3), len: lerp(0.62, 0.72, u), hw: 0.036, reach: 0.02 + 0.16 * u, base: 0.6, seed: seed++, kind: "flight" });
-  }
-  F.push(...prim, ...sec, ...ter);
-
-  // greater coverts: half length, brighter, over every flight feather
-  for (const f of [...prim, ...sec, ...ter]) add([f.ax + 0.01, f.ay + 0.012], f.ang + 3, f.len * 0.46, f.hw * 1.05, f.reach, 0.82, "covert");
-  // median coverts: a third, offset between the greater ones
-  for (const f of [...prim, ...sec, ...ter]) add([f.ax + 0.028, f.ay + 0.01], f.ang + 7, f.len * 0.3, f.hw * 1.0, f.reach, 0.9, "covert");
-  // six rows of small scalloped lesser coverts: a solid bright mass under the leading edge
-  for (let row = 5; row >= 0; row--) {
-    const n = 28;
-    const depth = 0.03 + row * 0.034; // rows stack down from the bone
-    for (let k = n; k >= 0; k--) {
-      const u = k / n;
-      const p = edge(u);
-      const size = lerp(0.2, 0.1, row / 5) * lerp(1.1, 0.85, u);
-      add([p[0] + 0.01 + (row % 2) * 0.012, p[1] + depth], lerp(102, 38, u) + row * 3, size, 0.021, u, 0.96 - row * 0.015, "lesser");
-    }
-  }
-  // soft shoulder fluff at the root, over and above the bone
-  for (let k = 9; k >= 0; k--) {
-    const u = k / 9;
-    add([-0.02 + u * 0.26, -0.1 - Math.sin(u * Math.PI) * 0.06], lerp(-30, 40, u), lerp(0.24, 0.2, u), 0.04, u * 0.25, 0.95, "scapular");
-  }
-  return F;
+/** Directional glyph for a gradient (gx, gy): the stroke runs across the gradient. */
+export function edgeGlyph(gx: number, gy: number) {
+  const ax = Math.abs(gx), ay = Math.abs(gy);
+  if (ax > ay * 2.2) return "|";
+  if (ay > ax * 2.2) return "-";
+  return gx * gy < 0 ? "/" : "\\";
 }
 
 /* ---------- renderer ---------- */
@@ -134,104 +114,294 @@ export function createWings(canvas: HTMLCanvasElement, options: Partial<WingsCon
   if (!ctx) return () => {};
   const parent = canvas.parentElement ?? canvas;
   const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
-  const feathers = buildWing();
 
-  let W = 0, Hh = 0, dpr = 1, cols = 0, rows = 0, cellW = 3.6, cellH = 6, font = "";
-  let Lb = 100, shX = 0, shY = 0, gap = 0; // bone length px, right shoulder position, half body gap
+  // cleaned source
+  const src = document.createElement("canvas");
+  const sctx = src.getContext("2d")!;
+  let sw = 0, sh = 0, ready = false;
+  // warped wing, right side only, at 2 px per cell
+  const off = document.createElement("canvas");
+  const octx = off.getContext("2d", { willReadFrequently: true })!;
+
+  let W = 0, Hh = 0, dpr = 1, cols = 0, rows = 0, cellW = 5, cellH = 8, font = "";
+  let advance = 0.6;
+  let gap = 0, halfCols = 0, xRight = 0; // half body gap, cells per wing, x where the right wing region starts
+  let Ww = 0, Wh = 0, imgLeft = 0, imgTop = 0; // rest-pose image box of the right wing
   let I = new Float32Array(0), G = new Float32Array(0);
+  let CH = new Uint8Array(0);
+  let grainAt = new Uint8Array(0);
+  let lumR = new Float32Array(0); // right-wing cell luminance (halfCols × rows)
   let raf = 0, lastNow = 0, start = 0, intersecting = true, disposed = false, resizeTimer = 0;
 
   const fontFamily = () =>
     cfg.fontFamily ??
     (getComputedStyle(document.documentElement).getPropertyValue("--font-mono").trim() || '"Space Mono", monospace');
 
+  /* ---- preprocess the photo once ---- */
+  function prepare(img: HTMLImageElement) {
+    const scale = Math.min(1, 1024 / img.naturalWidth);
+    sw = Math.round(img.naturalWidth * scale);
+    sh = Math.round(img.naturalHeight * scale);
+    src.width = sw;
+    src.height = sh;
+    sctx.drawImage(img, 0, 0, sw, sh);
+    const id = sctx.getImageData(0, 0, sw, sh);
+    const d = id.data;
+    const n = sw * sh;
+    const L = new Float32Array(n);
+    for (let i = 0; i < n; i++) {
+      const l = (0.299 * d[i * 4] + 0.587 * d[i * 4 + 1] + 0.114 * d[i * 4 + 2]) / 255;
+      L[i] = levels(l, cfg.blackPoint, cfg.whitePoint, cfg.gamma);
+    }
+    // separable box blurs: a small one for the unsharp mask, a wider one for local contrast
+    const blur = (srcA: Float32Array, R: number) => {
+      const tmp = new Float32Array(n), outA = new Float32Array(n);
+      for (let y = 0; y < sh; y++) {
+        for (let x = 0; x < sw; x++) {
+          let acc = 0, c = 0;
+          for (let dx = -R; dx <= R; dx++) {
+            const xx = x + dx;
+            if (xx < 0 || xx >= sw) continue;
+            acc += srcA[y * sw + xx];
+            c++;
+          }
+          tmp[y * sw + x] = acc / c;
+        }
+      }
+      for (let y = 0; y < sh; y++) {
+        for (let x = 0; x < sw; x++) {
+          let acc = 0, c = 0;
+          for (let dy = -R; dy <= R; dy++) {
+            const yy = y + dy;
+            if (yy < 0 || yy >= sh) continue;
+            acc += tmp[yy * sw + x];
+            c++;
+          }
+          outA[y * sw + x] = acc / c;
+        }
+      }
+      return outA;
+    };
+    const B = blur(L, 2);
+    const B2 = blur(L, cfg.localRadius);
+    const BM = blur(L, cfg.maskRadius);
+    for (let i = 0; i < n; i++) {
+      const sharp = clamp(L[i] + cfg.sharpen * (L[i] - B[i]), 0, 1);
+      const detail = clamp(0.5 + cfg.localGain * (L[i] - B2[i]), 0, 1);
+      const v = clamp(lerp(sharp, detail, cfg.local), 0, 1);
+      // background grunge is sparse: its wide-area mean stays low, the wing's does not
+      const a = (L[i] < cfg.cutoff ? 0 : smooth(cfg.cutoff, cfg.cutoff + 0.1, L[i])) * smooth(cfg.maskFrom, cfg.maskTo, BM[i]);
+      const g = Math.round(v * 255);
+      d[i * 4] = d[i * 4 + 1] = d[i * 4 + 2] = g;
+      d[i * 4 + 3] = Math.round(a * 255);
+    }
+    sctx.putImageData(id, 0, 0);
+    ready = true;
+  }
+
+  /* ---- layout ---- */
   function layout() {
     const rect = parent.getBoundingClientRect();
     W = Math.max(1, Math.round(rect.width));
     Hh = Math.max(1, Math.round(rect.height));
     dpr = Math.min(window.devicePixelRatio || 1, cfg.maxDpr);
-    const fs = window.innerWidth < 768 ? cfg.cellSizeMobile : cfg.cellSize;
-    font = `${fs}px ${fontFamily()}`;
-    ctx!.font = font;
-    cellW = ctx!.measureText("M").width || fs * 0.6;
-    cellH = fs;
+    ctx!.font = `100px ${fontFamily()}`;
+    const m = ctx!.measureText("M").width;
+    if (m > 0) advance = m / 100;
+    const target = window.innerWidth < 768 ? cfg.cellWidthMobile : cfg.cellWidth;
+    const fs = target / advance;
+    font = `${fs.toFixed(2)}px ${fontFamily()}`;
+    cellW = target;
+    cellH = fs; // row height = glyph height: no gaps between rows
     cols = Math.ceil(W / cellW);
     rows = Math.ceil(Hh / cellH);
     canvas.width = Math.round(W * dpr);
     canvas.height = Math.round(Hh * dpr);
     canvas.style.width = `${W}px`;
     canvas.style.height = `${Hh}px`;
-    I = new Float32Array(cols * rows);
-    G = new Float32Array(cols * rows);
+    const n = cols * rows;
+    I = new Float32Array(n);
+    G = new Float32Array(n);
+    CH = new Uint8Array(n);
+    grainAt = new Uint8Array(n);
+    if (cfg.grain > 0) for (let i = 0; i < n; i++) if (hash2(i, 77) < cfg.grain * 0.02) grainAt[i] = 1;
+
     gap = (W * cfg.bodyGap) / 2;
-    // primaries reach ~1.95 bone lengths from the shoulder; hanging feathers ~0.8 below the elbow
-    Lb = Math.min((W / 2 - gap - W * 0.02) / 2.0, Hh / 1.3);
-    shX = W / 2 + gap;
-    shY = Hh * 0.5;
+    xRight = W / 2 + gap;
+    halfCols = Math.ceil((W - xRight) / cellW);
+    lumR = new Float32Array(halfCols * rows);
+    off.width = halfCols * 2;
+    off.height = rows * 2;
+
+    // fit the wing: width across the half, height with room for the flap
+    const aspect = sw > 0 ? sw / sh : 3;
+    const flapRoom = Math.sin(cfg.flapDeg * (1 + cfg.elbowRatio + cfg.handRatio) * D2R) * 1.3;
+    Ww = Math.min(W - xRight - W * 0.01, (Hh - 16) / (1 / aspect + flapRoom));
+    Wh = Ww / aspect;
+    imgLeft = xRight - 0.03 * Ww; // root pivot sits just inside the image
+    imgTop = Hh / 2 - 0.56 * Wh;
   }
 
-  /* ---- plotting ---- */
+  /* ---- rig + mesh warp into the offscreen canvas ---- */
+  const NX = 40, NY = 12;
+  const vx = new Float32Array((NX + 1) * (NY + 1));
+  const vy = new Float32Array((NX + 1) * (NY + 1));
 
-  function plot(x: number, y: number, v: number) {
-    const ci = (x / cellW) | 0, cj = (y / cellH) | 0;
-    if (ci < 0 || cj < 0 || ci >= cols || cj >= rows) return;
-    I[cj * cols + ci] = v; // painter's order: later feathers lie on top
+  function rot(px: number, py: number, cx: number, cy: number, a: number): [number, number] {
+    const c = Math.cos(a), s = Math.sin(a);
+    const dx = px - cx, dy = py - cy;
+    return [cx + dx * c - dy * s, cy + dx * s + dy * c];
   }
 
-  function drawFeather(f: Feather, side: 1 | -1, t: number, shimmerC: number, pulse: number) {
+  function warp(t: number) {
     const reduced = reducedMotion.matches;
-    // breeze: slow body sway plus a per-feather flutter, stronger toward the tips
-    const sway = reduced ? 0 : (0.045 * Math.sin(t * 0.55 + f.ax * 2.2 + side * 0.4) + 0.016 * Math.sin(t * 1.9 + f.seed * 2.1)) * cfg.breeze;
-    const ang = (f.ang + (f.kind === "flight" ? 0 : 2)) * D2R + sway * (0.3 + 0.7 * f.reach) * (side === 1 ? 1 : -1);
-    const ox = side === 1 ? shX : W - shX; // mirrored shoulder
-    const bx = ox + side * f.ax * Lb;
-    const by = shY + f.ay * Lb;
-    const L = f.len * Lb, hw = f.hw * Lb;
-    const dx = side * Math.cos(ang), dy = Math.sin(ang); // direction (y down)
-    const nx = -dy, ny = dx; // normal
-    const stepS = cellH * 0.42, stepU = cellW * 0.42;
-    const shaftW = Math.max(cellW * 0.55, hw * 0.09);
-    const texS = 1 / (cellH * 0.9), texU = 1 / (cellW * 0.75);
-    for (let s = 0; s <= L; s += stepS) {
-      const tt = s / L;
-      const w = Math.max(cellW * 0.35, hw * featherProfile(tt));
-      const cxp = bx + dx * s, cyp = by + dy * s;
-      // shimmer band by distance from the shoulder
-      const dn = Math.hypot(cxp - ox, cyp - shY) / (Lb * 2.0);
-      const band = Math.exp(-Math.pow((dn - shimmerC) / 0.07, 2)) * 0.32 * cfg.shine;
-      for (let u = -w; u <= w; u += stepU) {
-        const au = Math.abs(u);
-        const e = au / w;
-        let v;
-        if (au < shaftW) v = 1.0;
-        else {
-          const tex = 0.5 + 0.5 * Math.sin(s * texS * 0.45 + au * texU * 0.9 + f.seed);
-          v = f.base * (0.9 + 0.1 * tex) * (1 - 0.45 * Math.pow(e, 2)) * (1 - 0.2 * tt * tt);
-          if (e > 0.9) v *= 0.5; // dark rim so overlaps read
-          v += (hash2(f.seed * 7 + ((s / stepS) | 0), (u / stepU) | 0) - 0.5) * 0.06;
+    const phi = reduced ? 0 : (t / cfg.flapPeriod) * Math.PI * 2;
+    const A = cfg.flapDeg * D2R;
+    const ease = (p: number) => Math.sin(p) * (1 - 0.12 * Math.cos(2 * p)); // slightly held at the extremes
+    const thS = reduced ? 0 : A * ease(phi);
+    const thE = reduced ? 0 : A * cfg.elbowRatio * ease(phi - cfg.elbowLag);
+    const thH = reduced ? 0 : A * cfg.handRatio * ease(phi - cfg.handLag);
+    const thF = reduced ? 0 : -cfg.flexDeg * D2R * Math.sin(phi - 1.0);
+    const up = reduced ? 0 : Math.max(0, -Math.sin(phi)); // upstroke amount
+
+    const Sx = imgLeft + 0.04 * Ww, Sy = imgTop + 0.56 * Wh;
+    const Ex = imgLeft + 0.3 * Ww, Ey = imgTop + 0.5 * Wh;
+    const Hx = imgLeft + 0.6 * Ww, Hy = imgTop + 0.45 * Wh;
+    const [E1x, E1y] = rot(Ex, Ey, Sx, Sy, thS);
+    const [H1x, H1y] = rot(Hx, Hy, Sx, Sy, thS);
+    const [H2x, H2y] = rot(H1x, H1y, E1x, E1y, thE);
+
+    for (let j = 0; j <= NY; j++) {
+      const v = j / NY;
+      for (let i = 0; i <= NX; i++) {
+        const u = i / NX;
+        const [wE, wH] = boneWeights(u);
+        let x = imgLeft + u * Ww, y = imgTop + v * Wh;
+        [x, y] = rot(x, y, Sx, Sy, thS);
+        if (wE > 0) {
+          const [rx, ry] = rot(x, y, E1x, E1y, thE);
+          x = lerp(x, rx, wE);
+          y = lerp(y, ry, wE);
         }
-        v = v * pulse + band;
-        plot(cxp + nx * u, cyp + ny * u, clamp(v, 0.06, 1.2));
+        if (wH > 0) {
+          const [rx, ry] = rot(x, y, H2x, H2y, thH);
+          x = lerp(x, rx, wH);
+          y = lerp(y, ry, wH);
+          // primaries: lower half of the hand flexes against the motion and spreads on the upstroke
+          const prim = smooth(0.65, 0.8, u) * clamp((v - 0.5) * 2, 0, 1);
+          if (prim > 0) {
+            const [fx, fy] = rot(x, y, H2x, H2y, thF * prim);
+            x = fx;
+            y = fy + (y - H2y) * 0.06 * up * prim;
+          }
+          // tiny flutter in the tip region
+          const fl = smooth(0.7, 1, u) * cfg.flutter;
+          if (fl > 0 && !reduced) y += fl * Math.sin(t * 6 + u * 40 + v * 9) * (Ww / 900);
+        }
+        const k = j * (NX + 1) + i;
+        vx[k] = x;
+        vy[k] = y;
+      }
+    }
+
+    // draw the mesh as textured triangles into the offscreen canvas (2 px per cell)
+    const kx = 2 / cellW, ky = 2 / cellH;
+    const o = octx;
+    o.setTransform(1, 0, 0, 1, 0, 0);
+    o.clearRect(0, 0, off.width, off.height);
+    const tri = (i0: number, i1: number, i2: number, s0: number[], s1: number[], s2: number[]) => {
+      const x0 = (vx[i0] - xRight) * kx, y0 = vy[i0] * ky;
+      const x1 = (vx[i1] - xRight) * kx, y1 = vy[i1] * ky;
+      const x2 = (vx[i2] - xRight) * kx, y2 = vy[i2] * ky;
+      // affine map source → dest
+      const det = (s1[0] - s0[0]) * (s2[1] - s0[1]) - (s2[0] - s0[0]) * (s1[1] - s0[1]);
+      if (Math.abs(det) < 1e-6) return;
+      const a = ((x1 - x0) * (s2[1] - s0[1]) - (x2 - x0) * (s1[1] - s0[1])) / det;
+      const b = ((y1 - y0) * (s2[1] - s0[1]) - (y2 - y0) * (s1[1] - s0[1])) / det;
+      const c = ((x2 - x0) * (s1[0] - s0[0]) - (x1 - x0) * (s2[0] - s0[0])) / det;
+      const d = ((y2 - y0) * (s1[0] - s0[0]) - (y1 - y0) * (s2[0] - s0[0])) / det;
+      const e = x0 - a * s0[0] - c * s0[1];
+      const f = y0 - b * s0[0] - d * s0[1];
+      // clip to the triangle, pushed out a hair to hide seams
+      const cx = (x0 + x1 + x2) / 3, cy = (y0 + y1 + y2) / 3;
+      const push = (x: number, y: number): [number, number] => {
+        const dx = x - cx, dy = y - cy, l = Math.hypot(dx, dy) || 1;
+        return [x + (dx / l) * 0.7, y + (dy / l) * 0.7];
+      };
+      const p0 = push(x0, y0), p1 = push(x1, y1), p2 = push(x2, y2);
+      o.save();
+      o.beginPath();
+      o.moveTo(p0[0], p0[1]);
+      o.lineTo(p1[0], p1[1]);
+      o.lineTo(p2[0], p2[1]);
+      o.closePath();
+      o.clip();
+      o.setTransform(a, b, c, d, e, f);
+      o.drawImage(src, 0, 0);
+      o.restore();
+    };
+    for (let j = 0; j < NY; j++) {
+      for (let i = 0; i < NX; i++) {
+        const k00 = j * (NX + 1) + i, k10 = k00 + 1, k01 = k00 + NX + 1, k11 = k01 + 1;
+        const s00 = [(i / NX) * sw, (j / NY) * sh], s10 = [((i + 1) / NX) * sw, (j / NY) * sh];
+        const s01 = [(i / NX) * sw, ((j + 1) / NY) * sh], s11 = [((i + 1) / NX) * sw, ((j + 1) / NY) * sh];
+        tri(k00, k10, k11, s00, s10, s11);
+        tri(k00, k11, k01, s00, s11, s01);
       }
     }
   }
 
-  function leadingEdge(side: 1 | -1) {
-    const ox = side === 1 ? shX : W - shX;
-    const pts = [
-      [0, 0],
-      [0.18, -0.06],
-      [0.72, -0.2],
-      [0.98, -0.22],
-    ];
-    for (let k = 0; k < pts.length - 1; k++) {
-      const a = pts[k], b = pts[k + 1];
-      const x0 = ox + side * a[0] * Lb, y0 = shY + a[1] * Lb, x1 = ox + side * b[0] * Lb, y1 = shY + b[1] * Lb;
-      const n = Math.ceil(Math.hypot(x1 - x0, y1 - y0) / (cellW * 0.4));
-      for (let i = 0; i <= n; i++) {
-        const t = i / n;
-        plot(x0 + (x1 - x0) * t, y0 + (y1 - y0) * t, 1.1);
-        plot(x0 + (x1 - x0) * t, y0 + (y1 - y0) * t + cellH * 0.9, 0.95);
+  /* ---- ASCII conversion ---- */
+  function convert(t: number) {
+    const ow = off.width, oh = off.height;
+    const d = octx.getImageData(0, 0, ow, oh).data;
+    // average each 2×2 block → cell luminance (alpha-weighted)
+    for (let j = 0; j < rows; j++) {
+      for (let i = 0; i < halfCols; i++) {
+        let s = 0;
+        for (let dy = 0; dy < 2; dy++) {
+          const row = (j * 2 + dy) * ow;
+          for (let dx = 0; dx < 2; dx++) {
+            const p = (row + i * 2 + dx) * 4;
+            s += d[p + 3] > 40 ? d[p] / 255 : 0;
+          }
+        }
+        lumR[j * halfCols + i] = s / 4;
+      }
+    }
+    I.fill(0);
+    CH.fill(0);
+    const reduced = reducedMotion.matches;
+    const pulse = reduced ? 1 : 1 + 0.03 * Math.sin(t * 0.8);
+    const shimmerC = reduced ? -1 : ((t % cfg.shimmerEvery) / cfg.shimmerEvery) * 1.3 - 0.15;
+    const L = (i: number, j: number) => lumR[clamp(j, 0, rows - 1) * halfCols + clamp(i, 0, halfCols - 1)];
+    const rightCol = Math.round(xRight / cellW);
+    const leftStart = Math.round((W / 2 - gap) / cellW) - 1; // right edge column of the left wing
+    for (let j = 0; j < rows; j++) {
+      for (let i = 0; i < halfCols; i++) {
+        const l = lumR[j * halfCols + i];
+        if (l < 0.04) continue;
+        const gx = -L(i - 1, j - 1) - 2 * L(i - 1, j) - L(i - 1, j + 1) + L(i + 1, j - 1) + 2 * L(i + 1, j) + L(i + 1, j + 1);
+        const gy = -L(i - 1, j - 1) - 2 * L(i, j - 1) - L(i + 1, j - 1) + L(i - 1, j + 1) + 2 * L(i, j + 1) + L(i + 1, j + 1);
+        const mag = Math.hypot(gx, gy) / 4;
+        const edge = mag > cfg.edgeThreshold;
+        const dn = (i * cellW) / Ww;
+        const band = Math.exp(-Math.pow((dn - shimmerC) / 0.07, 2)) * 0.3 * cfg.shine;
+        const v = clamp(Math.pow(l, cfg.tone) * pulse + band, 0, 1.2);
+        // right wing
+        const ci = rightCol + i;
+        if (ci < cols) {
+          const idx = j * cols + ci;
+          I[idx] = v;
+          CH[idx] = edge ? edgeGlyph(gx, gy).charCodeAt(0) : 0;
+        }
+        // left wing: mirror, swapping the diagonals
+        const li = leftStart - i;
+        if (li >= 0) {
+          const idx = j * cols + li;
+          I[idx] = v;
+          if (edge) CH[idx] = edgeGlyph(-gx, gy).charCodeAt(0);
+        }
       }
     }
   }
@@ -244,7 +414,7 @@ export function createWings(canvas: HTMLCanvasElement, options: Partial<WingsCon
     for (let j = 0; j < rows; j++) {
       for (let i = 0; i < cols; i++) {
         const v = I[j * cols + i];
-        if (v < 0.92) continue;
+        if (v < 0.9) continue;
         for (let dj = -R; dj <= R; dj++) {
           const jj = j + dj;
           if (jj < 0 || jj >= rows) continue;
@@ -253,27 +423,14 @@ export function createWings(canvas: HTMLCanvasElement, options: Partial<WingsCon
             if (ii < 0 || ii >= cols) continue;
             const idx = jj * cols + ii;
             if (I[idx] >= 0.05) continue;
-            const d = Math.hypot(di * 0.6, dj) / R;
-            if (d > 1) continue;
-            const g = (1 - d) * (1 - d) * 0.5 * cfg.shine * Math.min(1, (v - 0.88) * 6);
+            const dd = Math.hypot(di * 0.6, dj) / R;
+            if (dd > 1) continue;
+            const g = (1 - dd) * (1 - dd) * 0.5 * cfg.shine * Math.min(1, (v - 0.86) * 6);
             if (g > G[idx]) G[idx] = g;
           }
         }
       }
     }
-  }
-
-  function render(t: number) {
-    I.fill(0);
-    const reduced = reducedMotion.matches;
-    const pulse = reduced ? 1 : 1 + 0.035 * Math.sin(t * 0.8);
-    const shimmerC = reduced ? -1 : ((t % cfg.shimmerEvery) / cfg.shimmerEvery) * 1.3 - 0.15;
-    for (const side of [1, -1] as const) {
-      for (const f of feathers) drawFeather(f, side, t, shimmerC, pulse);
-      leadingEdge(side);
-    }
-    bloom();
-    draw(t);
   }
 
   function colorOf(v: number): RGB {
@@ -295,35 +452,42 @@ export function createWings(canvas: HTMLCanvasElement, options: Partial<WingsCon
     c.textAlign = "left";
     const ramp = cfg.ramp;
     const rm = ramp.length - 1;
-    const GAP = 4;
+    const GAP = 6;
+    const LEVELS = 12;
+    const grainStep = Math.floor(t * 2);
+    const styleOf = (key: number) => {
+      if (key >= 200) return "rgb(70,70,76)";
+      if (key >= 100) {
+        const k = Math.min(1, ((key - 100) / 4) * 1.1 + 0.15);
+        return `rgb(${(cfg.ivory[0] * k) | 0},${(cfg.ivory[1] * k) | 0},${(cfg.ivory[2] * k) | 0})`;
+      }
+      const [r, g, b] = colorOf(0.22 + 0.78 * (key / LEVELS));
+      return `rgb(${r | 0},${g | 0},${b | 0})`;
+    };
     const runs = new Map<number, string[]>();
     const keyOf = new Int32Array(cols);
     const glyphOf = new Array<string>(cols);
-    const grainStep = Math.floor(t * 2);
     for (let j = 0; j < rows; j++) {
       const base = j * cols;
       const y = (j + 0.5) * cellH;
       for (let i = 0; i < cols; i++) {
         const idx = base + i;
-        let v = I[idx];
-        let col: RGB;
-        if (v >= 0.05) {
+        const v = I[idx];
+        if (v >= 0.04) {
           const boosted = Math.min(1, v * (1 + 0.08 * cfg.shine));
-          col = colorOf(boosted);
-          glyphOf[i] = ramp[Math.max(1, Math.round(boosted * rm))];
+          glyphOf[i] = CH[idx] ? String.fromCharCode(CH[idx]) : ramp[Math.max(1, Math.round(boosted * rm))];
+          keyOf[i] = Math.round(boosted * LEVELS);
         } else if (G[idx] > 0.03) {
-          v = G[idx];
-          const k = Math.min(1, v * 2.2);
-          col = [cfg.ivory[0] * k, cfg.ivory[1] * k, cfg.ivory[2] * k];
-          glyphOf[i] = ramp[Math.max(1, Math.min(4, Math.round(v * 8)))];
-        } else if (cfg.grain > 0 && hash2(i + grainStep * 7, j) < cfg.grain * 0.02) {
-          col = [70, 70, 76];
+          const g = G[idx];
+          glyphOf[i] = ramp[Math.max(1, Math.min(4, Math.round(g * 8)))];
+          keyOf[i] = 100 + Math.min(4, Math.round(g * 4));
+        } else if (grainAt[idx] && hash2(idx, grainStep) < 0.7) {
           glyphOf[i] = hash2(i, j + grainStep) < 0.5 ? "." : ",";
+          keyOf[i] = 200;
         } else {
           keyOf[i] = -1;
           continue;
         }
-        keyOf[i] = ((((col[0] | 0) >> 4) & 15) << 8) | ((((col[1] | 0) >> 4) & 15) << 4) | (((col[2] | 0) >> 4) & 15);
       }
       const lastAt = new Map<number, number>();
       const open = new Map<number, { x: number; s: string }>();
@@ -351,8 +515,7 @@ export function createWings(canvas: HTMLCanvasElement, options: Partial<WingsCon
       }
     }
     for (const [key, list] of runs) {
-      const r = ((key >> 8) & 15) << 4, g = ((key >> 4) & 15) << 4, b = (key & 15) << 4;
-      c.fillStyle = `rgb(${r + 8},${g + 8},${b + 8})`;
+      c.fillStyle = styleOf(key);
       for (const item of list) {
         const a = item.indexOf("|"), b2 = item.indexOf("|", a + 1);
         c.fillText(item.slice(b2 + 1), Number(item.slice(0, a)) * cellW, Number(item.slice(a + 1, b2)));
@@ -360,8 +523,15 @@ export function createWings(canvas: HTMLCanvasElement, options: Partial<WingsCon
     }
   }
 
-  /* ---- loop ---- */
+  function render(t: number) {
+    if (!ready) return;
+    warp(t);
+    convert(t);
+    bloom();
+    draw(t);
+  }
 
+  /* ---- loop ---- */
   function running() {
     return !disposed && intersecting && !document.hidden;
   }
@@ -411,15 +581,25 @@ export function createWings(canvas: HTMLCanvasElement, options: Partial<WingsCon
   io.observe(canvas);
   document.addEventListener("visibilitychange", onVisibility);
   reducedMotion.addEventListener("change", schedule);
-  if ("fonts" in document) {
-    document.fonts.load(`${cfg.cellSize}px ${fontFamily()}`).then(() => {
-      if (disposed) return;
-      layout();
-      schedule();
-    });
-  }
+
+  const img = new Image();
+  img.decoding = "async";
+  img.onload = () => {
+    if (disposed) return;
+    prepare(img);
+    layout();
+    schedule();
+    if ("fonts" in document) {
+      document.fonts.load(`12px ${fontFamily()}`).then(() => {
+        if (disposed) return;
+        layout();
+        schedule();
+      });
+    }
+  };
+  img.src = cfg.src;
   layout();
-  schedule();
+
   return () => {
     disposed = true;
     stop();
