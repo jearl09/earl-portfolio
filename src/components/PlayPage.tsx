@@ -3,10 +3,12 @@ import { AsciiImage } from "./AsciiImage";
 import { BlackHole } from "./BlackHole";
 import { Hourglass } from "./Hourglass";
 import { Meadow } from "./Meadow";
+import { Wings } from "./Wings";
 
 const SOURCE_URL = "https://github.com/jearl09/earl-portfolio/blob/main/src/lib/blackhole.ts";
 const HOURGLASS_SOURCE_URL = "https://github.com/jearl09/earl-portfolio/blob/main/src/lib/hourglass.ts";
 const MEADOW_SOURCE_URL = "https://github.com/jearl09/earl-portfolio/blob/main/src/lib/meadow.ts";
+const WINGS_SOURCE_URL = "https://github.com/jearl09/earl-portfolio/blob/main/src/lib/wings.ts";
 
 const notes = [
   ["Render", "2D canvas, monospace glyphs, one string per row per colour"],
@@ -27,6 +29,13 @@ const meadowNotes = [
   ["Species", "Delphinium, aster, agapanthus, globe thistle, anemone, columbine, sea holly"],
   ["Depth", "Far plants sit at the horizon, small and faded; near blades overlap the blooms"],
   ["Motion", "Grass grows first, flowers open front to back, a breeze rolls left to right with a gust every nine seconds"],
+];
+
+const wingsNotes = [
+  ["Render", "Procedural feathers rasterised into a 6px character grid, each cell coloured shadow → silver → white"],
+  ["Anatomy", "Shoulder, elbow, wrist, tip; tertials, secondaries, primaries, three tiers of coverts, scapulars"],
+  ["Shine", "The brightest cells bloom ivory into the empty cells around them; a band of light sweeps root to tip"],
+  ["Motion", "A still, spread pose that only breathes in the breeze; a static frame under reduced motion"],
 ];
 
 export const PlayPage = () => {
@@ -162,6 +171,41 @@ export const PlayPage = () => {
             </div>
             <dl className="border-t border-border">
               {meadowNotes.map(([k, v]) => (
+                <div key={k} className="grid grid-cols-[6rem_1fr] gap-4 py-4 border-b border-border">
+                  <dt className="text-mono text-xs uppercase tracking-widest text-muted-foreground">{k}</dt>
+                  <dd className="text-sm text-foreground/85 leading-relaxed">{v}</dd>
+                </div>
+              ))}
+            </dl>
+          </div>
+        </div>
+
+        <div className="max-w-6xl mt-24">
+          <div className="aspect-[4/3] md:aspect-[12/5] w-full overflow-hidden">
+            <Wings />
+          </div>
+          <div className="grid md:grid-cols-2 gap-12 mt-10">
+            <div>
+              <h3 className="text-display text-2xl md:text-3xl font-bold tracking-tight mb-4">
+                <span className="text-accent text-mono text-xs align-top mr-3">04</span>
+                Wings
+              </h3>
+              <p className="text-muted-foreground leading-relaxed mb-6">
+                A pair of white wings built feather by feather on a real wing skeleton and drawn as text. Every
+                feather has a bright shaft, barbed vanes and darker edges so the overlaps read; the brightest
+                cells bloom into the dark around them while a band of light sweeps from root to tip.
+              </p>
+              <a
+                href={WINGS_SOURCE_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 text-mono text-xs uppercase tracking-widest text-foreground hover:text-accent transition-colors duration-300"
+              >
+                View source <ArrowUpRight className="h-4 w-4" />
+              </a>
+            </div>
+            <dl className="border-t border-border">
+              {wingsNotes.map(([k, v]) => (
                 <div key={k} className="grid grid-cols-[6rem_1fr] gap-4 py-4 border-b border-border">
                   <dt className="text-mono text-xs uppercase tracking-widest text-muted-foreground">{k}</dt>
                   <dd className="text-sm text-foreground/85 leading-relaxed">{v}</dd>

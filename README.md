@@ -82,3 +82,16 @@ right with a gust every nine seconds.
   density, layout seed, frame cap.
 - `src/components/Meadow.tsx` — canvas that fills its parent.
 - Used in `src/components/PlayPage.tsx` under Experiments.
+
+## ASCII wings (Play, piece 04)
+
+A pair of white wings drawn as text. Each wing is built from procedural feathers (tertials,
+secondaries, primaries, greater/median/lesser coverts, scapulars) anchored to a shoulder → elbow →
+wrist → tip skeleton and mirrored around a body gap. Cells run from cool shadow through silver to
+white; the brightest cells bloom ivory into the empty cells around them and a band of light sweeps
+root to tip. The wings hold a spread pose and only move with a breeze.
+
+- `src/lib/wings.ts` — renderer. Tunables in `WINGS_CONFIG`: cell size, ramp, shine, shimmer period,
+  breeze, body gap, colours, grain, frame cap.
+- `src/components/Wings.tsx` — canvas that fills its parent.
+- Used in `src/components/PlayPage.tsx` under Experiments.
