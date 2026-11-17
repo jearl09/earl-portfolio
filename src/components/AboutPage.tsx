@@ -1,4 +1,5 @@
 import { ArrowUpRight } from "lucide-react";
+import { AsciiImage } from "./AsciiImage";
 
 const skills = [
   "Full-Stack Web Development",
@@ -75,12 +76,8 @@ I’m John Earl Mandawe, a Full-Stack Software Engineer focused on building robu
           </div>
 
           <div className="opacity-0 animate-fade-up" style={{ animationDelay: '200ms', animationFillMode: 'forwards' }}>
-            <div className="aspect-[3/4] bg-card overflow-hidden">
-              <img
-                src="/about-photo.jpeg"
-                alt="Portrait"
-                className="w-full h-full object-cover"
-              />
+            <div className="aspect-[3/4] overflow-hidden">
+              <AsciiImage src="/about-photo.jpeg" alt="Portrait" imgClassName="bg-card" />
             </div>
           </div>
         </div>
