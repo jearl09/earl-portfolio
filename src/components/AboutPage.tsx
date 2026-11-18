@@ -1,5 +1,4 @@
 import { ArrowUpRight } from "lucide-react";
-import { AsciiImage } from "./AsciiImage";
 
 const skills = [
   "Full-Stack Web Development",
@@ -12,18 +11,25 @@ const skills = [
 
 const experience = [
   {
-    role: "Full-Stack Developer",
-    company: "Live Luxe — Partner Booking Portal (Next.js, Supabase, Stripe, Hostaway)",
+    role: "Full-Stack Developer & Systems Engineer",
+    company:
+      "Live Luxe — Partner booking portal (Next.js, Supabase, Stripe, Hostaway) and back-office automation: owner disbursements, weekly variable costs, booking-clash checks (Python, Claude Code). Moved internal tools to a self-hosted Mac mini server over Tailscale; manage DNS, GoHighLevel funnels and email sending domains.",
     period: "2026 — Present",
   },
   {
-    role: "Deployment & Operations Engineer",
-    company: "Live Luxe — Back-office automation: owner disbursements, weekly variable costs (Python, Claude Code, Tailscale, Vercel)",
+    role: "Web & Integrations Developer",
+    company:
+      "Direct Auto — Company website (Next.js, Vercel, Cloudflare): SEO location pages, GoHighLevel chat widget, deployments and domain setup. Google Cloud and Workspace setup for the internal CRM (OAuth, Gmail API, Pub/Sub), plus DNS for ad tracking and email.",
     period: "2026 — Present",
   },
   {
     role: "Software Engineer",
-    company: "Wholesale Acquisition Bot — automotive client (Python, FastAPI, Claude API)",
+    company: "Wholesale Acquisition Bot — automotive client (Python, FastAPI, PostgreSQL, Claude API, GoHighLevel)",
+    period: "2026",
+  },
+  {
+    role: "Automation Developer",
+    company: "Stateline Rentals — Fleet board and Turo dynamic-pricing tool with guard rails (Node.js, SQLite)",
     period: "2026",
   },
   {
@@ -69,15 +75,24 @@ export const AboutPage = () => {
         <div className="grid md:grid-cols-2 gap-16 mb-24">
           <div className="opacity-0 animate-fade-up" style={{ animationDelay: '100ms', animationFillMode: 'forwards' }}>
             <p className="text-muted-foreground leading-relaxed mb-6">
-I’m John Earl Mandawe, a Full-Stack Software Engineer focused on building robust, high-performance web applications and scalable data-driven systems. I work across the stack with Java (Spring Boot), TypeScript, React, Next.js, and Supabase, backed by relational databases like PostgreSQL and MySQL. Whether I'm automating complex data ingestion pipelines, architecting resilient backend services, or tinkering in a Linux environment, I care about clean architecture, speed, and real-world impact.            </p>
+              I&rsquo;m John Earl Mandawe, a <strong className="font-medium text-foreground">Full-Stack Software Engineer</strong> who
+              builds <strong className="font-medium text-foreground">web apps, internal tools and automations</strong> for small
+              businesses. I work mainly with <strong className="font-medium text-foreground">TypeScript, React, Next.js and Supabase</strong>,
+              plus <strong className="font-medium text-foreground">Python and Java (Spring Boot)</strong>, on PostgreSQL and MySQL. Day to
+              day that means shipping features, wiring up{" "}
+              <strong className="font-medium text-foreground">integrations (GoHighLevel, Stripe, Xero, Google Workspace, Turo)</strong>, and
+              keeping the systems behind them running:{" "}
+              <strong className="font-medium text-foreground">deployments, DNS, servers and the access around them</strong>. I care about
+              clean architecture, reliable systems, and work that makes a real difference to the people using it.
+            </p>
             <p className="text-muted-foreground leading-relaxed">
               Based in Cebu, Philippines.
             </p>
           </div>
 
           <div className="opacity-0 animate-fade-up" style={{ animationDelay: '200ms', animationFillMode: 'forwards' }}>
-            <div className="aspect-[3/4] overflow-hidden">
-              <AsciiImage src="/about-photo.jpeg" alt="Portrait" imgClassName="bg-card" />
+            <div className="aspect-[3/4] bg-card overflow-hidden">
+              <img src="/about-portrait.webp" alt="John Earl Mandawe, graduation portrait" className="w-full h-full object-cover" />
             </div>
           </div>
         </div>

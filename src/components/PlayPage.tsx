@@ -31,6 +31,13 @@ const meadowNotes = [
   ["Motion", "Grass grows first, flowers open front to back, a breeze rolls left to right with a gust every nine seconds"],
 ];
 
+const portraitNotes = [
+  ["Render", "Each cell averages the photo under it; brightness picks a glyph, the cell keeps the photo's colour"],
+  ["Edges", "A Sobel pass turns strong gradients into / \\ | - strokes so outlines stay crisp"],
+  ["Motion", "Characters decode in from the top when it scrolls into view; hover scrambles a ripple that settles back"],
+  ["Weight", "Renders once and stays still; a single frame under reduced motion"],
+];
+
 const wingsNotes = [
   ["Source", "A photograph of a wing, cleaned once: levels, gamma, cutoff and an unsharp mask"],
   ["Rig", "A mesh of 960 triangles skinned to shoulder, elbow and hand; the mirror image makes the left wing"],
@@ -213,6 +220,41 @@ export const PlayPage = () => {
                 </div>
               ))}
             </dl>
+          </div>
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-12 max-w-6xl mt-24 items-start">
+          <div className="order-2 md:order-1">
+            <h3 className="text-display text-2xl md:text-3xl font-bold tracking-tight mb-4">
+              <span className="text-accent text-mono text-xs align-top mr-3">05</span>
+              Portrait
+            </h3>
+            <p className="text-muted-foreground leading-relaxed mb-6">
+              A picture rebuilt from characters in the browser. The image is split into a grid the size of one
+              monospace glyph, every cell averages its colours and picks a character by brightness, and an edge
+              pass keeps the outlines. Move the mouse over it to scramble the characters.
+            </p>
+            <a
+              href="https://github.com/jearl09/earl-portfolio/blob/main/src/lib/asciiImage.ts"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 text-mono text-xs uppercase tracking-widest text-foreground hover:text-accent transition-colors duration-300 mb-10"
+            >
+              View source <ArrowUpRight className="h-4 w-4" />
+            </a>
+            <dl className="border-t border-border">
+              {portraitNotes.map(([k, v]) => (
+                <div key={k} className="grid grid-cols-[6rem_1fr] gap-4 py-4 border-b border-border">
+                  <dt className="text-mono text-xs uppercase tracking-widest text-muted-foreground">{k}</dt>
+                  <dd className="text-sm text-foreground/85 leading-relaxed">{v}</dd>
+                </div>
+              ))}
+            </dl>
+          </div>
+          <div className="order-1 md:order-2">
+            <div className="aspect-[3/4] overflow-hidden max-w-md md:ml-auto">
+              <AsciiImage src="/about-photo.jpeg" alt="" imgClassName="bg-card" />
+            </div>
           </div>
         </div>
       </section>
